@@ -1,0 +1,109 @@
+---
+title: "Scraping"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidytext)
+library(rvest)
+library(glue)
+```
+
+# a reproducible example for book 1
+
+```{r}
+book1 <- "https://www.hogwartsishere.com/library/book/12647/chapter/1/"
+```
+
+```{r}
+script_raw <- book1 %>% 
+  read_html() %>% 
+  html_nodes(css = ".roboto") %>% 
+  html_text() %>% 
+  as_tibble()
+
+# we need to separate the rows
+
+
+script_seperated <- script_raw %>% 
+  mutate(value = str_remove_all(value, "\\n")) %>% 
+  separate_rows(value, sep = "\\?(?=(\\w+\\s)?\\w+:)") %>% 
+  separate_rows(value, sep = "\\.(?=\\w+:)") %>%
+  separate_rows(value, sep = "\\!(?=\\w+:)") %>% 
+  separate_rows(value, sep = "\\s(?=\\w+:)") %>% 
+  separate_rows(value, sep = "](?=\\w+:)") %>% 
+  separate(value, into = c("character", "line"), sep = ":") %>% 
+  mutate(line = str_replace_all(line, "\\]", " "),
+         line = str_replace_all(line, "\\[", " ")) %>% 
+  mutate(character = str_to_lower(character))
+   
+```
+
+## a list of characters and their corresponding houses
+
+```{r}
+characters <- read_csv("https://raw.githubusercontent.com/andrew-couch/Tidy-Tuesday/master/Season%201/Data/harrypotter.csv")
+
+characters <- characters %>% 
+  separate(character, into = c("type", "Ch"), sep = "_") %>% 
+  filter(type == "Movie") 
+
+names_houses <- characters %>% 
+  count(Ch,house, sort = T) %>% 
+  mutate(Ch = str_trim(Ch, "both"),
+         Ch = str_to_lower(Ch)) %>% 
+  select(Ch, house) %>% 
+  filter(house != "No Entry")
+
+```
+
+
+```{r}
+script_book1 <- script_seperated %>% 
+  filter(character %in%  names_houses$Ch) %>% 
+  left_join(names_houses, by = c("character" = "Ch"))
+```
+
+
+# function to scrape the rest
+
+```{r}
+scrape_script <- function(link){
+  
+  script_raw <- link %>% 
+    read_html() %>% 
+    html_nodes(css = ".roboto") %>% 
+    html_text() %>% 
+    as_tibble()
+  
+  script_seperated <- script_raw %>% 
+    mutate(value = str_remove_all(value, "\\n")) %>% 
+    separate_rows(value, sep = "\\?(?=(\\w+\\s)?\\w+:)") %>% 
+    separate_rows(value, sep = "\\.(?=\\w+:)") %>%
+    separate_rows(value, sep = "\\!(?=\\w+:)") %>% 
+    separate_rows(value, sep = "\\s(?=\\w+:)") %>% 
+    separate_rows(value, sep = "](?=\\w+:)") %>% 
+    separate(value, into = c("character", "line"), sep = ":") %>% 
+    mutate(
+      line = str_replace_all(line, "\\]", " "),
+      line = str_replace_all(line, "\\[", " ")
+      ) %>% 
+    mutate(character = str_to_lower(character))
+  
+  script_final <- script_seperated %>% 
+    filter(character %in%  names_houses$Ch) %>% 
+    left_join(names_houses, by = c("character" = "Ch"))
+  
+  script_final
+}
+```
+
+```{r}
+books <- 1:9
+
+all_links <- glue("https://www.hogwartsishere.com/library/book/12647/chapter/{books}/")
+```
+
+
