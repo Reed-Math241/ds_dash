@@ -1,109 +1,139 @@
 ---
-title: "Scraping"
+title: "Pulling"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
 library(tidyverse)
-library(tidytext)
-library(rvest)
-library(glue)
-```
-
-# a reproducible example for book 1
-
-```{r}
-book1 <- "https://www.hogwartsishere.com/library/book/12647/chapter/1/"
-```
-
-```{r}
-script_raw <- book1 %>% 
-  read_html() %>% 
-  html_nodes(css = ".roboto") %>% 
-  html_text() %>% 
-  as_tibble()
-
-# we need to separate the rows
-
-
-script_seperated <- script_raw %>% 
-  mutate(value = str_remove_all(value, "\\n")) %>% 
-  separate_rows(value, sep = "\\?(?=(\\w+\\s)?\\w+:)") %>% 
-  separate_rows(value, sep = "\\.(?=\\w+:)") %>%
-  separate_rows(value, sep = "\\!(?=\\w+:)") %>% 
-  separate_rows(value, sep = "\\s(?=\\w+:)") %>% 
-  separate_rows(value, sep = "](?=\\w+:)") %>% 
-  separate(value, into = c("character", "line"), sep = ":") %>% 
-  mutate(line = str_replace_all(line, "\\]", " "),
-         line = str_replace_all(line, "\\[", " ")) %>% 
-  mutate(character = str_to_lower(character))
-   
-```
-
-## a list of characters and their corresponding houses
-
-```{r}
-characters <- read_csv("https://raw.githubusercontent.com/andrew-couch/Tidy-Tuesday/master/Season%201/Data/harrypotter.csv")
-
-characters <- characters %>% 
-  separate(character, into = c("type", "Ch"), sep = "_") %>% 
-  filter(type == "Movie") 
-
-names_houses <- characters %>% 
-  count(Ch,house, sort = T) %>% 
-  mutate(Ch = str_trim(Ch, "both"),
-         Ch = str_to_lower(Ch)) %>% 
-  select(Ch, house) %>% 
-  filter(house != "No Entry")
-
+library(lubridate)
+library(plotly)
 ```
 
 
 ```{r}
-script_book1 <- script_seperated %>% 
-  filter(character %in%  names_houses$Ch) %>% 
-  left_join(names_houses, by = c("character" = "Ch"))
+t <- read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime_data.csv")
 ```
 
 
-# function to scrape the rest
 
+# code to add to script!
 ```{r}
-scrape_script <- function(link){
+
+tt <- t %>% 
+  mutate(last_updated = with_tz(last_updated, tzone = "America/Los_Angeles"))
+
+```
+
+# how to add or subtract time
+```{r}
+max <- max(t$last_updated)
+min <- min(t$last_updated)
+max <- with_tz(max, "America/Los_Angeles")
+
+new_min <- max
+min <- with_tz(min, "America/Los_Angeles")
+
+
+week(max) <- week(max) - 2
+
+
+range_checker <- function(df){
   
-  script_raw <- link %>% 
-    read_html() %>% 
-    html_nodes(css = ".roboto") %>% 
-    html_text() %>% 
-    as_tibble()
+  max <- max(df$last_updated)
+  min <- min(df$last_updated)
+  new_min <- max
+  day(new_min) <- day(new_min) - 1
   
-  script_seperated <- script_raw %>% 
-    mutate(value = str_remove_all(value, "\\n")) %>% 
-    separate_rows(value, sep = "\\?(?=(\\w+\\s)?\\w+:)") %>% 
-    separate_rows(value, sep = "\\.(?=\\w+:)") %>%
-    separate_rows(value, sep = "\\!(?=\\w+:)") %>% 
-    separate_rows(value, sep = "\\s(?=\\w+:)") %>% 
-    separate_rows(value, sep = "](?=\\w+:)") %>% 
-    separate(value, into = c("character", "line"), sep = ":") %>% 
-    mutate(
-      line = str_replace_all(line, "\\]", " "),
-      line = str_replace_all(line, "\\[", " ")
-      ) %>% 
-    mutate(character = str_to_lower(character))
-  
-  script_final <- script_seperated %>% 
-    filter(character %in%  names_houses$Ch) %>% 
-    left_join(names_houses, by = c("character" = "Ch"))
-  
-  script_final
+  if (min > new_min){
+    df
+  } else {
+    
+    df %>% 
+      filter(last_updated > new_min)
+      
+  }
 }
+
+
 ```
+
 
 ```{r}
-books <- 1:9
+pp <- t %>% 
+  ggplot(aes(lon, lat)) +
+  # geom_denisty_2d_filled()
+  geom_bin2d() +
+  coord_map() +
+  theme_minimal()
 
-all_links <- glue("https://www.hogwartsishere.com/library/book/12647/chapter/{books}/")
+plty <- ggplotly(pp)
+
+t %>% plot_ly(x = ~x, y = ~y,
+          mode = "markers", 
+          marker = list(size = 20,
+                        color = 'green'), 
+          type = "scatter")
+
+plty %>% 
+  layout(title = "Basic Slider",
+         sliders = list(
+           list(
+             active = 1, 
+             currentvalue = list(prefix = "Color: "), 
+             pad = list(t = 60), 
+             steps = steps))) 
 ```
+
+
+```{r}
+
+
+df <- data.frame(x = c("1", "2", "3", "4", "5"), 
+                 y = c("1", "1", "1", "1", "1")) 
+
+# create steps for slider
+steps <- list(
+  list(args = list("marker.color", "red"), 
+                    label = "Red", 
+                    method = "restyle", 
+                    value = "1"
+                    ),
+  list(args = list("marker.color", "green"), 
+                    label = "Green", 
+                    method = "restyle", 
+                    value = "2"
+                    ),
+  list(args = list("marker.color", "blue"), 
+                    label = "Blue", 
+                    method = "restyle", 
+                    value = "3"
+                    )
+  )
+
+fig <- df 
+fig <- fig %>% plot_ly(x = ~x, y = ~y,
+          mode = "markers", 
+          marker = list(size = 20,
+                        color = 'green'), 
+          type = "scatter") 
+
+
+fig <- fig %>% layout(title = "Basic Slider",
+         sliders = list(
+           list(
+             active = 1, 
+             currentvalue = list(prefix = "Color: "), 
+             pad = list(t = 60), 
+             steps = steps))) 
+
+fig
+```
+
+
+```{r}
+
+```
+
+
 
 
