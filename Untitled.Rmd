@@ -6,12 +6,37 @@ output: html_document
 ```{r}
 library(tidyverse)
 library(lubridate)
-
+library(sf)
 ```
 
 
 ```{r}
-t <- read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime_data.csv")
+t <- read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
+
+t <- t %>% 
+  mutate(last_updated = with_tz(last_updated, "America/Los_Angeles"))
+
+st_write(map, "shiny_app/sf_boundary1.shp")
+
+
+map <- st_read("/Users/joshuayamamoto/Downloads/SF Shoreline and Islands/geo_export_f07717d3-0581-4d32-ae60-c9b2f961271a.shp")
+
+map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
+
+mapdos <- st_read("/Users/joshuayamamoto/Downloads/Outline of San Francisco (Mask)/geo_export_5cb2b387-aa37-4c92-8b0b-a29b02a0dba1.shp")
+
+map %>% 
+  ggplot() +
+  geom_sf() +
+  geom_bin2d(data = t, aes(lon, lat), inherit.aes = F) +
+  coord_sf(xlim = c(-122.54, -122.35), ylim = c(37.7, 37.83))
+
+ggplot(aes(lon, lat)) +
+  # geom_denisty_2d_filled()
+  geom_bin2d() +
+  coord_map() +
+  theme_minimal()
+
 ```
 
 
