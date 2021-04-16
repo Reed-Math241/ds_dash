@@ -6,7 +6,7 @@ output: html_document
 ```{r}
 library(tidyverse)
 library(lubridate)
-library(plotly)
+
 ```
 
 
@@ -131,9 +131,17 @@ fig
 
 
 ```{r}
+t <- t %>% 
+  mutate(last_updated = as.character(last_updated))
 
+
+write_csv(t, "test.csv")
 ```
 
+```{r}
+n <- read_csv("test.csv")
+t
+```
 
 
 
