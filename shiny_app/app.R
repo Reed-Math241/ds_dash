@@ -97,11 +97,11 @@ server <- function(input, output) {
           fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")}')
         ) +
         theme(
-          plot.caption = element_text(family = "Roboto Mono", hjust = 1.3),
+          plot.caption = element_text(family = "Roboto Mono", hjust = 1.3, size = 12),
           legend.position = "left",
           legend.key.size = unit(1, "cm"),
           legend.text = element_text(size = 8, family = "Roboto Mono"),
-          legend.title = element_text(size = 12, family = "Roboto Mono")
+          legend.title = element_text(size = 15, family = "Roboto Mono")
         ) +
         guides(fill = guide_colorbar(title.position = "left"))
       
