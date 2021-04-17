@@ -4,10 +4,13 @@ library(lubridate)
 library(shinydashboard)
 library(sf)
 library(scales)
+library(glue)
+library(bslib)
+library(dashboardthemes)
 
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
-
+top <- max(data_full$last_updated)
 
 data_full <- data_full %>% 
   separate(
@@ -32,8 +35,11 @@ ui <- dashboardPage(
   dashboardHeader(),
   dashboardSidebar(),
   dashboardBody(
+    shinyDashboardThemes(
+      theme = "grey_light"
+    ),
     fluidRow(
-      box(plotOutput("plot1"), width = 12, status = "primary")
+      box(plotOutput("plot1"), width = 12)
       ),
     fluidRow(
       box(
@@ -72,6 +78,9 @@ server <- function(input, output) {
         high = "#60c957"
       ) +
       theme_void() +
+      labs(
+        caption = glue("Last updated: {top}")
+      ) +
       theme(
         legend.position = "left",
         legend.key.size = unit(1, "cm"),
