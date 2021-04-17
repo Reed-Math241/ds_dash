@@ -5,9 +5,10 @@ library(shinydashboard)
 library(sf)
 library(scales)
 library(glue)
-library(bslib)
+library(shinyWidgets)
 library(dashboardthemes)
 library(extrafont)
+library(plotly)
 
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
@@ -40,23 +41,24 @@ ui <- dashboardPage(
       theme = "grey_light"
     ),
     fluidRow(
-      box(plotOutput("plot1"), width = 8)
-      ),
-    fluidRow(
-      box(
-        title = "Controls",
-        align = "center",
-        width = 8,
-        sliderInput("slider", "Date/time:",
-                    step = 3600,
-                    min = min(data_full$full_date),
-                    max = max(data_full$full_date),
-                    value = min(data_full$full_date),
-        timeFormat = "%h-%d, %H:%M %p")
-     )
+      box(plotOutput("plot1"), width = 9),
+      box(knobInput(
+          inputId = "Knob",
+          label = "Number of hours ago:",
+          value = 0,
+          min = 0,
+          max = 24,
+          displayPrevious = F,
+          lineCap = "round",
+          fgColor = "#60c957",
+          inputColor = "#60c957"
+          ), width = 3
+        )
+      )
     )
-  )
 )
+
+
 
 server <- function(input, output) {
   
@@ -64,34 +66,52 @@ server <- function(input, output) {
     
     filt_data <- reactive({
       
+      date <- max(data_full$full_date)
+      hour(date) <- hour(date) - input$Knob 
+        
       data_full %>% 
-        filter(full_date == input$slider)
+        filter(full_date == date)
       
-    })    
+    })   
     
-    map %>% 
-      ggplot() +
-      geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
-      geom_sf(fill = NA, color = "grey50") +
-      scale_fill_gradient(
-        name = "  Number\n of free\n Scooters",
-        low = "white",
-        high = "#60c957"
-      ) +
-      theme_void() +
-      labs(
-        caption = glue("Last updated: {top}")
-      ) +
-      theme(
-        plot.caption = element_text(family = "Roboto Mono"),
-        legend.position = "left",
-        legend.key.size = unit(1, "cm"),
-        legend.text = element_text(size = 8, family = "Roboto Mono"),
-        legend.title = element_text(size = 12, family = "Roboto Mono")
-      ) +
-      guides(fill = guide_colorbar(title.position = "left"))
+    viewed <- reactive({
+      date <- max(data_full$full_date)
+      hour(date) <- hour(date) - input$Knob 
+      date
+    })
+    
+    
+    plott <- reactive({
+      map %>% 
+        ggplot() +
+        geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
+        geom_sf(fill = NA, color = "grey50") +
+        scale_fill_gradient(
+          #name = "  Number\n of free\n Scooters",
+          low = "white",
+          high = "#60c957"
+        ) +
+        theme_void() +
+        labs(
+          caption = glue("Last updated: {top}"),
+          fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")}')
+        ) +
+        theme(
+          plot.caption = element_text(family = "Roboto Mono", hjust = 1.3),
+          legend.position = "left",
+          legend.key.size = unit(1, "cm"),
+          legend.text = element_text(size = 8, family = "Roboto Mono"),
+          legend.title = element_text(size = 12, family = "Roboto Mono")
+        ) +
+        guides(fill = guide_colorbar(title.position = "left"))
       
+    })
+    
+    plott()
+    
   })
+  
+
 }
 
 shinyApp(ui, server)

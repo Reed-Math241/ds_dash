@@ -7,6 +7,7 @@ output: html_document
 library(tidyverse)
 library(lubridate)
 library(sf)
+library(plotly)
 ```
 
 
@@ -30,16 +31,18 @@ map %>%
   geom_hex(data = t, aes(lon, lat), inherit.aes = F, bins = 18) +
   geom_sf(fill = NA, color = "grey50") +
   scale_fill_gradient(
-    name = "Number of Scooters",
     low = "white",
     high = "#60c957"
   ) +
   theme_void() +
   theme(
     legend.position = "left"
+  ) + 
+  labs(
+    fill = "t"
   )
 
-
+ggplotly(mapp)
 ```
 
 
