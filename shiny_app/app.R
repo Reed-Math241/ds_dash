@@ -7,10 +7,12 @@ library(scales)
 library(glue)
 library(bslib)
 library(dashboardthemes)
+library(extrafont)
 
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
 top <- max(data_full$last_updated)
+top <- with_tz(top, "America/Los_Angeles")
 
 data_full <- data_full %>% 
   separate(
@@ -23,7 +25,6 @@ data_full <- data_full %>%
     hr = str_sub(full_date, -2),
     hr = as.numeric(hr)
     ) %>% 
-  
   mutate(full_date = with_tz(full_date, "America/Los_Angeles")) %>% 
   mutate(pm_am = case_when(
     hr >= 12 & hr < 24 ~ "PM",
@@ -39,13 +40,13 @@ ui <- dashboardPage(
       theme = "grey_light"
     ),
     fluidRow(
-      box(plotOutput("plot1"), width = 12)
+      box(plotOutput("plot1"), width = 8)
       ),
     fluidRow(
       box(
         title = "Controls",
         align = "center",
-        width = 10,
+        width = 8,
         sliderInput("slider", "Date/time:",
                     step = 3600,
                     min = min(data_full$full_date),
@@ -73,7 +74,7 @@ server <- function(input, output) {
       geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
       geom_sf(fill = NA, color = "grey50") +
       scale_fill_gradient(
-        name = "Number\n of free\n Scooters",
+        name = "  Number\n of free\n Scooters",
         low = "white",
         high = "#60c957"
       ) +
@@ -82,10 +83,11 @@ server <- function(input, output) {
         caption = glue("Last updated: {top}")
       ) +
       theme(
+        plot.caption = element_text(family = "Roboto Mono"),
         legend.position = "left",
         legend.key.size = unit(1, "cm"),
-        legend.text = element_text(size = 8),
-        legend.title = element_text(size = 12)
+        legend.text = element_text(size = 8, family = "Roboto Mono"),
+        legend.title = element_text(size = 12, family = "Roboto Mono")
       ) +
       guides(fill = guide_colorbar(title.position = "left"))
       
