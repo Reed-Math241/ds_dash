@@ -23,31 +23,29 @@ map <- st_read("/Users/joshuayamamoto/Downloads/SF Shoreline and Islands/geo_exp
 
 map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
-mapdos <- st_read("/Users/joshuayamamoto/Downloads/Outline of San Francisco (Mask)/geo_export_5cb2b387-aa37-4c92-8b0b-a29b02a0dba1.shp")
+
 
 map %>% 
   ggplot() +
-  geom_sf() +
-  geom_bin2d(data = t, aes(lon, lat), inherit.aes = F) +
-  coord_sf(xlim = c(-122.54, -122.35), ylim = c(37.7, 37.83))
+  geom_hex(data = t, aes(lon, lat), inherit.aes = F, bins = 18) +
+  geom_sf(fill = NA, color = "grey50") +
+  scale_fill_gradient(
+    name = "Number of Scooters",
+    low = "white",
+    high = "#60c957"
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "left"
+  )
 
-ggplot(aes(lon, lat)) +
-  # geom_denisty_2d_filled()
-  geom_bin2d() +
-  coord_map() +
-  theme_minimal()
-
-```
-
-
-
-# code to add to script!
-```{r}
-
-tt <- t %>% 
-  mutate(last_updated = with_tz(last_updated, tzone = "America/Los_Angeles"))
 
 ```
+
+
+
+
+
 
 # how to add or subtract time
 ```{r}
@@ -83,90 +81,6 @@ range_checker <- function(df){
 ```
 
 
-```{r}
-pp <- t %>% 
-  ggplot(aes(lon, lat)) +
-  # geom_denisty_2d_filled()
-  geom_bin2d() +
-  coord_map() +
-  theme_minimal()
-
-plty <- ggplotly(pp)
-
-t %>% plot_ly(x = ~x, y = ~y,
-          mode = "markers", 
-          marker = list(size = 20,
-                        color = 'green'), 
-          type = "scatter")
-
-plty %>% 
-  layout(title = "Basic Slider",
-         sliders = list(
-           list(
-             active = 1, 
-             currentvalue = list(prefix = "Color: "), 
-             pad = list(t = 60), 
-             steps = steps))) 
-```
-
-
-```{r}
-
-
-df <- data.frame(x = c("1", "2", "3", "4", "5"), 
-                 y = c("1", "1", "1", "1", "1")) 
-
-# create steps for slider
-steps <- list(
-  list(args = list("marker.color", "red"), 
-                    label = "Red", 
-                    method = "restyle", 
-                    value = "1"
-                    ),
-  list(args = list("marker.color", "green"), 
-                    label = "Green", 
-                    method = "restyle", 
-                    value = "2"
-                    ),
-  list(args = list("marker.color", "blue"), 
-                    label = "Blue", 
-                    method = "restyle", 
-                    value = "3"
-                    )
-  )
-
-fig <- df 
-fig <- fig %>% plot_ly(x = ~x, y = ~y,
-          mode = "markers", 
-          marker = list(size = 20,
-                        color = 'green'), 
-          type = "scatter") 
-
-
-fig <- fig %>% layout(title = "Basic Slider",
-         sliders = list(
-           list(
-             active = 1, 
-             currentvalue = list(prefix = "Color: "), 
-             pad = list(t = 60), 
-             steps = steps))) 
-
-fig
-```
-
-
-```{r}
-t <- t %>% 
-  mutate(last_updated = as.character(last_updated))
-
-
-write_csv(t, "test.csv")
-```
-
-```{r}
-n <- read_csv("test.csv")
-t
-```
 
 
 

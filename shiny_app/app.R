@@ -3,28 +3,29 @@ library(tidyverse)
 library(lubridate)
 library(shinydashboard)
 library(sf)
+library(scales)
 
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
 
 
 data_full <- data_full %>% 
-  mutate(last_updated = with_tz(last_updated, "America/Los_Angeles")) %>% 
   separate(
     last_updated,
     into = c("for_slider", "extra"),
     remove = F, sep = ":"
     ) %>% 
+  mutate(full_date = ymd_h(for_slider)) %>% 
   mutate(
-    hr = str_sub(for_slider, -2),
+    hr = str_sub(full_date, -2),
     hr = as.numeric(hr)
     ) %>% 
+  
+  mutate(full_date = with_tz(full_date, "America/Los_Angeles")) %>% 
   mutate(pm_am = case_when(
     hr >= 12 & hr < 24 ~ "PM",
     T ~ "AM"
-  )) %>% 
-  unite("full_date", c("for_slider", "pm_am"), remove = F) %>% 
-  mutate(full_date = parse_date_time(full_date, "%y%m%d%h% p"))
+  )) 
 
 
 ui <- dashboardPage(
@@ -37,14 +38,15 @@ ui <- dashboardPage(
     fluidRow(
       box(
         title = "Controls",
-        sliderInput("slider", "Number of observations:",
+        align = "center",
+        width = 10,
+        sliderInput("slider", "Date/time:",
                     step = 3600,
                     min = min(data_full$full_date),
                     max = max(data_full$full_date),
-                    value = min(data_full$full_date)),
-        width = 10,
-        animate = T
-     ) 
+                    value = min(data_full$full_date),
+        timeFormat = "%h-%d, %H:%M %p")
+     )
     )
   )
 )
@@ -62,13 +64,21 @@ server <- function(input, output) {
     
     map %>% 
       ggplot() +
-      geom_sf() +
-      geom_bin2d(data = filt_data(), aes(lon, lat), inherit.aes = F) +
+      geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
+      geom_sf(fill = NA, color = "grey50") +
       scale_fill_gradient(
+        name = "Number\n of free\n Scooters",
         low = "white",
-        high = "#3f9154"
+        high = "#60c957"
       ) +
-      theme_minimal()
+      theme_void() +
+      theme(
+        legend.position = "left",
+        legend.key.size = unit(1, "cm"),
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 12)
+      ) +
+      guides(fill = guide_colorbar(title.position = "left"))
       
   })
 }
