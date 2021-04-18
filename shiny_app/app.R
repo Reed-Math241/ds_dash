@@ -15,6 +15,10 @@ map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
 top <- max(data_full$last_updated)
 top <- with_tz(top, "America/Los_Angeles")
 
+font <- list(family = "Raleway",
+             size = 10,
+             color = "black")
+
 data_full <- data_full %>% 
   separate(
     last_updated,
@@ -41,7 +45,7 @@ ui <- dashboardPage(
       theme = "grey_light"
     ),
     fluidRow(
-      box(plotOutput("plot1"), width = 9),
+      box(plotlyOutput("plot1"), width = 9),
       box(knobInput(
           inputId = "Knob",
           label = "Number of hours ago:",
@@ -51,7 +55,8 @@ ui <- dashboardPage(
           displayPrevious = F,
           lineCap = "round",
           fgColor = "#60c957",
-          inputColor = "#60c957"
+          inputColor = "#60c957",
+          pre = "-"
           ), width = 3
         )
       )
@@ -62,52 +67,72 @@ ui <- dashboardPage(
 
 server <- function(input, output) {
   
-  output$plot1 <- renderPlot({
+  filt_data <- reactive({
     
-    filt_data <- reactive({
-      
-      date <- max(data_full$full_date)
-      hour(date) <- hour(date) - input$Knob 
-        
-      data_full %>% 
-        filter(full_date == date)
-      
-    })   
+    date <- max(data_full$full_date)
+    hour(date) <- hour(date) - input$Knob 
     
-    viewed <- reactive({
-      date <- max(data_full$full_date)
-      hour(date) <- hour(date) - input$Knob 
-      date
-    })
+    data_full %>% 
+      filter(full_date == date)
     
+  })   
+  
+  viewed <- reactive({
+    date <- max(data_full$full_date)
+    hour(date) <- hour(date) - input$Knob 
+    date
+  })
+  
+  plot_static <- reactive({
+    map %>% 
+      ggplot() +
+      geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
+      geom_sf(fill = NA, color = "grey50") +
+      scale_fill_gradient(
+        #name = "  Number\n of free\n Scooters",
+        low = "white",
+        high = "#60c957"
+      ) +
+      theme_void() +
+      labs(
+        caption = glue("Last updated: {top}"),
+        title = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")}')
+      ) +
+      theme(
+        plot.caption = element_text(family = "Roboto Mono", hjust = 1.3, size = 12 ),
+        #legend.position = "left",
+        #legend.key.size = unit(1, "cm"),
+        #legend.text = element_text(size = 8, family = "Roboto Mono"),
+        #legend.title = element_text(size = 15, family = "Roboto Mono")
+      ) +
+      guides(fill = guide_colorbar(title.position = "left"))
     
-    plott <- reactive({
-      map %>% 
-        ggplot() +
-        geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
-        geom_sf(fill = NA, color = "grey50") +
-        scale_fill_gradient(
-          #name = "  Number\n of free\n Scooters",
-          low = "white",
-          high = "#60c957"
-        ) +
-        theme_void() +
-        labs(
-          caption = glue("Last updated: {top}"),
-          fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")}')
-        ) +
-        theme(
-          plot.caption = element_text(family = "Roboto Mono", hjust = 1.3, size = 12),
-          legend.position = "left",
-          legend.key.size = unit(1, "cm"),
-          legend.text = element_text(size = 8, family = "Roboto Mono"),
-          legend.title = element_text(size = 15, family = "Roboto Mono")
-        ) +
-        guides(fill = guide_colorbar(title.position = "left"))
-      
-    })
-    
-    plott()
+  })
+  
+  output$plot1 <- renderPlotly({
+  
+    ggplotly(plot_static(),
+             dynamicTicks = TRUE) %>% 
+      layout(
+        xaxis = list(
+          title = "",
+          zeroline = FALSE,
+          showline = FALSE,
+          showticklabels = FALSE,
+          showgrid = FALSE
+        ),
+        yaxis = list(
+          title = "",
+          zeroline = FALSE,
+          showline = FALSE,
+          showticklabels = FALSE,
+          showgrid = FALSE
+        ),
+        font = list(
+          family = "h"
+        )
+      ) %>% 
+      config(displayModeBar = F) 
     
   })
   
