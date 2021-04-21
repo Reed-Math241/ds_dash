@@ -63,27 +63,24 @@ min <- with_tz(min, "America/Los_Angeles")
 week(max) <- week(max) - 2
 
 
-range_checker <- function(df){
-  
-  max <- max(df$last_updated)
-  min <- min(df$last_updated)
-  new_min <- max
-  day(new_min) <- day(new_min) - 1
-  
-  if (min > new_min){
-    df
-  } else {
-    
-    df %>% 
-      filter(last_updated > new_min)
-      
-  }
-}
 
 
 ```
 
 
+```{r}
+t %>% 
+  count(last_updated) %>% 
+  ggplot(aes(last_updated, n)) +
+  geom_col() +
+  theme_minimal()
+```
 
+```{r}
+t %>% 
+  count(last_updated) %>% 
+  ggplot(aes(x = last_updated, y = n, fill = ifelse(last_updated == max(t$last_updated), "yes", "no"))) +
+  geom_col()
+```
 
 
