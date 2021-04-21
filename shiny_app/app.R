@@ -23,13 +23,13 @@ mytheme <- create_theme(
     light_blue = "#f5f7f5"
   ),
   adminlte_sidebar(
-    width = "400px",
-    dark_bg = "#6a7d72",
+    width = "200px",
+    dark_bg = "#717b85",
     dark_hover_bg = "#e1e8e4",
     dark_color = "#0ca84f"
   ),
   adminlte_global(
-    content_bg = "#FFF",
+    content_bg = "#d8e3df",
     box_bg = "D8DEE9",
     info_box_bg = "D8DEE9"
   )
@@ -65,27 +65,29 @@ ui <- dashboardPage(
     fluidRow(
       box(
         solidHeader = T,
-        plotOutput("plot1"), width = 8),
+        plotOutput("plot1"), width = 9),
       box(
         solidHeader = T,
         knobInput(
           inputId = "Knob",
           label = "Number of hours ago:",
+          thickness = 0.35,
           value = 0,
           min = 0,
           max = 24,
           displayPrevious = F,
           lineCap = "round",
-          fgColor = "#60c957",
-          inputColor = "#60c957",
+          fgColor = "#576a7d",
+          bgColor = "#f2f4f5",
+          inputColor = "#8ca4d4",
           pre = "-"
-          ), width = 4
+          ), width = 3
         )
       ),
     fluidRow(
       box(
         SolidHeader = T,
-        plotOutput("plot2"), width = 8
+        plotOutput("plot2"), width = 9
         )
     )
   )
