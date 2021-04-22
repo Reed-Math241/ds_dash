@@ -65,8 +65,8 @@ ui <- dashboardPage(
     ),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Trends", tabName = "trends", icon = icon("dashboard")),
-      menuItem("In Detail", tabName = "detail", icon = icon("th"))
+      menuItem("Trends", tabName = "trends", icon = icon("poll")),
+      menuItem("In Detail", tabName = "detail", icon = icon("binoculars"))
     )
   ),
   dashboardBody(
@@ -93,7 +93,7 @@ ui <- dashboardPage(
                       inputId = "bins",
                       selected = "14",
                       label = "Number of hexagonal bins:", 
-                      choices = c("10", "14", "18", "22"),
+                      choices = c("100" = 10, "200" = 14, "300" = 17, "400" = 20, "500" = 23, "600" = 25),
                       status = "primary",
                       size = "lg",
                       individual = T

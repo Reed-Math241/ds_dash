@@ -8,6 +8,7 @@ library(tidyverse)
 library(lubridate)
 library(sf)
 library(plotly)
+library(leaflet)
 ```
 
 
@@ -26,16 +27,28 @@ map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
 
 
-map %>% 
+t %>% 
   ggplot() +
-  geom_sf(fill = NA, color = "grey50") +
-  geom_point(data = t, aes(lon, lat), inherit.aes = F, alpha = 0.2) +
-  theme_void() 
+  geom_sf(data = map, fill = NA, color = "grey50", inherit.aes = F) +
+  geom_hex(aes(lon, lat), bins = 14) +
+  theme_void() +
+  transition_time(last_updated) +
+  ease_aes('linear')
 
 ggplotly(mapp)
 ```
 
 
+```{r}
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.35)) %>%
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.35)) %>% 
+  addProviderTiles(providers$Stamen.TonerLabels) %>% 
+  addCircleMarkers(lng = ~lon, lat = ~lat,
+                     data = t, radius = 1) 
+```
 
 
 
