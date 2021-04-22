@@ -1,3 +1,5 @@
+## packages --------------------------------------------------------------------
+
 library(shiny)
 library(tidyverse)
 library(lubridate)
@@ -9,7 +11,7 @@ library(shinyWidgets)
 library(fresh)
 library(plotly)
 
-## non-reactive data loading ---------------------------------------------------
+## data loading ----------------------------------------------------------------
 
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
@@ -20,13 +22,14 @@ top <- with_tz(top, "America/Los_Angeles")
 
 mytheme <- create_theme(
   adminlte_color(
-    light_blue = "#f5f7f5"
+    light_blue = "#717b85"
   ),
   adminlte_sidebar(
-    width = "200px",
-    dark_bg = "#717b85",
-    dark_hover_bg = "#e1e8e4",
-    dark_color = "#0ca84f"
+    width = "300px",
+    dark_bg = "#444e59",
+    dark_hover_bg = "#9ca8b5",
+    dark_hover_color = "#f7faf9",
+    light_color = "#f7faf9" 
   ),
   adminlte_global(
     content_bg = "#d8e3df",
@@ -35,7 +38,7 @@ mytheme <- create_theme(
   )
 )
 
-##--------------------------------------------------------------------------------
+## prelim wrangling ------------------------------------------------------------
 
 data_full <- data_full %>% 
   separate(
@@ -54,46 +57,79 @@ data_full <- data_full %>%
     T ~ "AM"
   )) 
 
+## dashboard -------------------------------------------------------------------
 
 ui <- dashboardPage(
   dashboardHeader(
-    title = "test"
+    title = "Lime Scooter Trends"
     ),
-  dashboardSidebar(),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Trends", tabName = "trends", icon = icon("dashboard")),
+      menuItem("In Detail", tabName = "detail", icon = icon("th"))
+    )
+  ),
   dashboardBody(
     use_theme(mytheme),
-    fluidRow(
-      box(
-        solidHeader = T,
-        plotOutput("plot1"), width = 9),
-      box(
-        solidHeader = T,
-        knobInput(
-          inputId = "Knob",
-          label = "Number of hours ago:",
-          thickness = 0.35,
-          value = 0,
-          min = 0,
-          max = 24,
-          displayPrevious = F,
-          lineCap = "round",
-          fgColor = "#576a7d",
-          bgColor = "#f2f4f5",
-          inputColor = "#8ca4d4",
-          pre = "-"
-          ), width = 3
-        )
-      ),
-    fluidRow(
-      box(
-        SolidHeader = T,
-        plotOutput("plot2"), width = 9
-        )
+    tabItems(
+      tabItem(tabName = "trends",
+              fluidRow(
+                column(width = 9,
+                  box(
+                    solidHeader = T,
+                    plotOutput("plot1"),
+                    width = NULL
+                    ),
+                  box(
+                    SolidHeader = T,
+                    plotOutput("plot2"),
+                    width = NULL, height = 225
+                  )
+                ),
+                column(width = 3,
+                  box(
+                    solidHeader = T,
+                    radioGroupButtons(
+                      inputId = "bins",
+                      selected = "14",
+                      label = "Number of hexagonal bins:", 
+                      choices = c("10", "14", "18", "22"),
+                      status = "primary",
+                      size = "lg",
+                      individual = T
+                      ),
+                    width = NULL, height = 135
+                  ),
+                  box(
+                    solidHeader = T,
+                    knobInput(
+                      inputId = "Knob",
+                      label = "Number of hours ago:",
+                      thickness = 0.35,
+                      value = 0,
+                      min = 0,
+                      max = 24,
+                      displayPrevious = F,
+                      lineCap = "round",
+                      fgColor = "#576a7d",
+                      bgColor = "#f2f4f5",
+                      inputColor = "#8ca4d4",
+                      pre = "-"
+                    ),
+                    width = NULL
+                  )
+              )
+          )
+        ),
+      tabItem(tabName = "detail",
+              h2("Widgets tab content")
+          )
     )
   )
 )
 
 
+## server ----------------------------------------------------------------------
 
 server <- function(input, output) {
   
@@ -106,12 +142,18 @@ server <- function(input, output) {
       filter(full_date == date)
     
   })   
-
   
   viewed <- reactive({
     date <- max(data_full$full_date)
     hour(date) <- hour(date) - input$Knob 
     date
+  })
+  
+  counts <- reactive({
+    filt_data() %>% 
+      count(full_date) %>% 
+      select(n) %>% 
+      pull()
   })
   
   full_with_marker <- reactive({
@@ -122,7 +164,7 @@ server <- function(input, output) {
   plot_static <- reactive({
     map %>% 
       ggplot() +
-      geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = 18) +
+      geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = as.numeric(input$bins)) +
       geom_sf(fill = NA, color = "grey50") +
       scale_fill_gradient(
         low = "white",
@@ -137,7 +179,7 @@ server <- function(input, output) {
         plot.caption = element_text(family = "Roboto Mono", hjust = 1, size = 12 ),
         legend.position = "left",
         legend.key.size = unit(1, "cm"),
-        legend.text = element_text(size = 8, family = "Roboto Mono"),
+        legend.text = element_text(size = 9, family = "Roboto Mono"),
         legend.title = element_text(size = 15, family = "Roboto Mono")
       ) +
       guides(fill = guide_colorbar(title.position = "left"))
@@ -156,8 +198,15 @@ server <- function(input, output) {
       count(full_date) %>% 
       ggplot(aes(x = full_date, y = n, fill = ifelse(full_date == viewed(), "yes", "no"))) +
       geom_col(show.legend = F) +
+      annotate(
+        "text", y = 800, x = viewed(),
+        label = counts(),
+        family = "Roboto Mono",
+        color = "#fcfcfc",
+        size = 3.3
+        ) +
       scale_fill_manual(
-        values = c("#344463","#8ca4d4")
+        values = c("#344463","#6d81a8")
       ) +
       labs(
         x = "Time",
@@ -178,4 +227,10 @@ server <- function(input, output) {
   
 }
 
+
+## create app ------------------------------------------------------------------
+
 shinyApp(ui, server)
+
+
+

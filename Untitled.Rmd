@@ -28,19 +28,9 @@ map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
 map %>% 
   ggplot() +
-  geom_hex(data = t, aes(lon, lat), inherit.aes = F, bins = 18) +
   geom_sf(fill = NA, color = "grey50") +
-  scale_fill_gradient(
-    low = "white",
-    high = "#60c957"
-  ) +
-  theme_void() +
-  theme(
-    legend.position = "left"
-  ) + 
-  labs(
-    fill = "t"
-  )
+  geom_point(data = t, aes(lon, lat), inherit.aes = F, alpha = 0.2) +
+  theme_void() 
 
 ggplotly(mapp)
 ```
@@ -83,4 +73,47 @@ t %>%
   geom_col()
 ```
 
+```{r}
+fluidRow(
+                box(
+                  solidHeader = T,
+                  plotOutput("plot1"), width = 9),
+                box(
+                  solidHeader = T,
+                  knobInput(
+                    inputId = "Knob",
+                    label = "Number of hours ago:",
+                    thickness = 0.35,
+                    value = 0,
+                    min = 0,
+                    max = 24,
+                    displayPrevious = F,
+                    lineCap = "round",
+                    fgColor = "#576a7d",
+                    bgColor = "#f2f4f5",
+                    inputColor = "#8ca4d4",
+                    pre = "-"
+                  ), width = 3, height = 419
+                )
+              ),
+              fluidRow(
+                box(
+                  SolidHeader = T,
+                  plotOutput("plot2"), width = 9, height = 225
+                ),
+                box(
+                  solidHeader = T,
+                  radioGroupButtons(
+                    inputId = "bins",
+                    selected = "14",
+                    label = "Number of bins", 
+                    choices = c("10", "14", "18", "22"),
+                    status = "primary",
+                    size = "lg",
+                    individual = T
+                  ),
+                  width = 3, height = 225
+                )
+              )
+```
 
