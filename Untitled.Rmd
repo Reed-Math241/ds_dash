@@ -27,15 +27,9 @@ map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
 
 
-t %>% 
-  ggplot() +
-  geom_sf(data = map, fill = NA, color = "grey50", inherit.aes = F) +
-  geom_hex(aes(lon, lat), bins = 14) +
-  theme_void() +
-  transition_time(last_updated) +
-  ease_aes('linear')
 
-ggplotly(mapp)
+
+
 ```
 
 

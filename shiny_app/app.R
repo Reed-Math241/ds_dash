@@ -9,7 +9,7 @@ library(scales)
 library(glue)
 library(shinyWidgets)
 library(fresh)
-library(plotly)
+library(leaflet)
 
 ## data loading ----------------------------------------------------------------
 
@@ -122,7 +122,13 @@ ui <- dashboardPage(
           )
         ),
       tabItem(tabName = "detail",
-              h2("Widgets tab content")
+              fluidRow(
+                box(
+                  solidHeader = T,
+                  leafletOutput("plot3"),
+                  width = 9
+                )
+              )
           )
     )
   )
@@ -173,7 +179,7 @@ server <- function(input, output) {
       theme_void() +
       labs(
         caption = glue("Last updated: {top}"),
-        fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")}')
+        fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")} \n in San Francisco')
       ) +
       theme(
         plot.caption = element_text(family = "Roboto Mono", hjust = 1, size = 12 ),
@@ -221,6 +227,18 @@ server <- function(input, output) {
       ) 
     
   }, height = 200)
+  
+  output$plot3 <- renderLeaflet({
+    leaflet(options = leafletOptions(minZoom = 11.5, maxZoom = 14)) %>% 
+      addProviderTiles(providers$MtbMap,
+                       options = providerTileOptions(opacity = 0.35)) %>%
+      addProviderTiles(providers$Stamen.TonerLines,
+                       options = providerTileOptions(opacity = 0.35)) %>% 
+      addProviderTiles(providers$Stamen.TonerLabels) %>% 
+      addCircleMarkers(lng = ~lon, lat = ~lat,
+                       data = data_full, radius = 1,
+                       color = "#60c957", opacity = 0.6) 
+  })
   
 
   
