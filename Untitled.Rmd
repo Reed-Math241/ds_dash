@@ -7,10 +7,12 @@ output: html_document
 library(tidyverse)
 library(lubridate)
 library(sf)
-library(plotly)
 library(leaflet)
+library(sp)
 ```
 
+
+## testing bikeshare data and general outline of sf map data
 
 ```{r}
 t <- read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
@@ -26,12 +28,53 @@ map <- st_read("/Users/joshuayamamoto/Downloads/SF Shoreline and Islands/geo_exp
 map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
 
-
-
-
-
 ```
 
+## San Francisco neighborhoods
+
+```{r}
+
+# dealing with neighborhoods
+
+neibs <- st_read("/Users/joshuayamamoto/Downloads/SF Find Neighborhoods/geo_export_9c547e56-21de-452a-96e8-e273dc0528f1.shp")
+
+coords <- t %>% 
+  select(lon, lat, ) %>%
+  st_as_sf(coords = c(1,2))
+
+coords_new <- coords %>% st_set_crs(st_crs(neibs))
+
+
+neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+
+neibs %>% 
+  ggplot() +
+  geom_sf() +
+  geom_sf(data = coords_new)
+```
+
+using leaflet
+
+```{r}
+
+
+pal <- colorNumeric(palette = "Oranges", domain = neibs$n)
+
+neibs %>% 
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.35)) %>%
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.35)) %>% 
+  addProviderTiles(providers$Stamen.TonerLabels) %>% 
+  addPolygons(color = ~pal(n), fillOpacity = 0.9, popup = ~as.character(n)) %>% 
+  addLegend("bottomright", pal = pal, 
+            values = ~n, title = "Number of scooters",
+            opacity = 1)
+```
+
+
+## leaflet plot testing
 
 ```{r}
 leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
@@ -41,13 +84,14 @@ leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>%
                    options = providerTileOptions(opacity = 0.35)) %>% 
   addProviderTiles(providers$Stamen.TonerLabels) %>% 
   addCircleMarkers(lng = ~lon, lat = ~lat,
-                     data = t, radius = 1) 
+                     data = t, radius = 1) %>% 
+ 
 ```
 
+## how to add or subtract time
 
+This will be used to help figure out my input sliders
 
-
-# how to add or subtract time
 ```{r}
 max <- max(t$last_updated)
 min <- min(t$last_updated)
@@ -64,63 +108,4 @@ week(max) <- week(max) - 2
 
 ```
 
-
-```{r}
-t %>% 
-  count(last_updated) %>% 
-  ggplot(aes(last_updated, n)) +
-  geom_col() +
-  theme_minimal()
-```
-
-```{r}
-t %>% 
-  count(last_updated) %>% 
-  ggplot(aes(x = last_updated, y = n, fill = ifelse(last_updated == max(t$last_updated), "yes", "no"))) +
-  geom_col()
-```
-
-```{r}
-fluidRow(
-                box(
-                  solidHeader = T,
-                  plotOutput("plot1"), width = 9),
-                box(
-                  solidHeader = T,
-                  knobInput(
-                    inputId = "Knob",
-                    label = "Number of hours ago:",
-                    thickness = 0.35,
-                    value = 0,
-                    min = 0,
-                    max = 24,
-                    displayPrevious = F,
-                    lineCap = "round",
-                    fgColor = "#576a7d",
-                    bgColor = "#f2f4f5",
-                    inputColor = "#8ca4d4",
-                    pre = "-"
-                  ), width = 3, height = 419
-                )
-              ),
-              fluidRow(
-                box(
-                  SolidHeader = T,
-                  plotOutput("plot2"), width = 9, height = 225
-                ),
-                box(
-                  solidHeader = T,
-                  radioGroupButtons(
-                    inputId = "bins",
-                    selected = "14",
-                    label = "Number of bins", 
-                    choices = c("10", "14", "18", "22"),
-                    status = "primary",
-                    size = "lg",
-                    individual = T
-                  ),
-                  width = 3, height = 225
-                )
-              )
-```
 
