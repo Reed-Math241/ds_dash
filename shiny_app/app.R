@@ -16,6 +16,7 @@ library(leaflet)
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/schPull/master/data-folder/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
 neibs <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_neibs.shp')
+districts <- st_read("/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_districts.shp")
 top <- max(data_full$last_updated)
 top <- with_tz(top, "America/Los_Angeles")
 
@@ -57,6 +58,18 @@ data_full <- data_full %>%
     hr >= 12 & hr < 24 ~ "PM",
     T ~ "AM"
   )) 
+
+coords <- data_full %>% 
+  select(lon, lat) %>%
+  st_as_sf(coords = c(1,2))
+
+coords_new <- coords %>% 
+  st_set_crs(st_crs(neibs))
+
+neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+
+districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+
 
 ## dashboard -------------------------------------------------------------------
 
@@ -154,9 +167,20 @@ ui <- dashboardPage(
                   solidHeader = T,
                   leafletOutput("plot3"),
                   width = 9
+                ),
+                box(
+                  solidHeader = T,
+                  sliderTextInput(
+                    inputId = "zoomslider",
+                    label = "Level of Aggregation:",
+                    grid = T,
+                    force_edges = TRUE,
+                    choices = c("Individual Points",
+                                "Neighborhoods", "Districts")
+                  )
                 )
               )
-          )
+        )
     )
   )
 )
@@ -255,20 +279,60 @@ server <- function(input, output) {
     
   }, height = 200)
   
-  output$plot3 <- renderLeaflet({
-    leaflet(options = leafletOptions(minZoom = 11.5, maxZoom = 14)) %>% 
-      addProviderTiles(providers$MtbMap,
-                       options = providerTileOptions(opacity = 0.35)) %>%
-      addProviderTiles(providers$Stamen.TonerLines,
-                       options = providerTileOptions(opacity = 0.35)) %>% 
-      addProviderTiles(providers$Stamen.TonerLabels) %>% 
-      addCircleMarkers(lng = ~lon, lat = ~lat,
-                       data = data_full, radius = 1,
-                       color = "#60c957", opacity = 0.6) 
+  static_plot <- reactive({
+    
+    if (input$zoomslider == "Individual Points") {
+      
+      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+        addProviderTiles(providers$MtbMap,
+                         options = providerTileOptions(opacity = 0.35)) %>%
+        addProviderTiles(providers$Stamen.TonerLines,
+                         options = providerTileOptions(opacity = 0.35)) %>% 
+        addProviderTiles(providers$Stamen.TonerLabels) %>% 
+        addCircleMarkers(lng = ~lon, lat = ~lat,
+                         data = data_full, radius = 1,
+                         color = "#60c957", opacity = 0.6)
+      
+    } else if (input$zoomslider == "Neighborhoods") {
+      
+      pal <- colorNumeric(palette = "Oranges", domain = neibs$n)
+      labl <- paste0(neibs$name, "<br>", "scooters: ", neibs$n)
+      
+      neibs %>% 
+        leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+        addProviderTiles(providers$MtbMap,
+                         options = providerTileOptions(opacity = 0.35)) %>%
+        addProviderTiles(providers$Stamen.TonerLines,
+                         options = providerTileOptions(opacity = 0.35)) %>% 
+        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+        addPolylines(color = "black", weight = 1.5) %>% 
+        addLegend("bottomright", pal = pal, 
+                  values = ~n, title = "Number of scooters",
+                  opacity = 1)
+      
+    } else if (input$zoomslider == "Districts") {
+      
+      pal <- colorNumeric(palette = "Oranges", domain = districts$n)
+      labl <- paste0("District ", districts$supervisor, "<br>", "scooters: ", districts$n)
+      
+      districts %>% 
+        leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+        addProviderTiles(providers$MtbMap,
+                         options = providerTileOptions(opacity = 0.35)) %>%
+        addProviderTiles(providers$Stamen.TonerLines,
+                         options = providerTileOptions(opacity = 0.35)) %>% 
+        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+        addPolylines(color = "black", weight = 1.5) %>% 
+        addLegend("bottomright", pal = pal, 
+                  values = ~n, title = "Number of scooters",
+                  opacity = 1)
+      
+    }
   })
   
-
-  
+  output$plot3 <- renderLeaflet({
+    static_plot()
+  })
   
 }
 

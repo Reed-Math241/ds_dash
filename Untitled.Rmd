@@ -38,12 +38,28 @@ districts %>%
   geom_sf()
 
 coords <- t %>% 
-  select(lon, lat, ) %>%
+  select(lon, lat) %>%
   st_as_sf(coords = c(1,2))
 
-coords_new <- coords %>% st_set_crs(st_crs(districts))
+coords_new <- coords %>% 
+  st_set_crs(st_crs(districts))
 
 districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+
+pal <- colorNumeric(palette = "Oranges", domain = districts$n)
+labl <- paste0("District ", districts$supervisor, "<br>", "scooters: ", districts$n)
+
+districts %>% 
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.35)) %>%
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.35)) %>% 
+  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+  addPolylines(color = "black", weight = 1.5) %>% 
+  addLegend("bottomright", pal = pal, 
+            values = ~n, title = "Number of scooters",
+            opacity = 1)
 
 
 
