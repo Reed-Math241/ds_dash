@@ -163,23 +163,51 @@ ui <- dashboardPage(
         ),
       tabItem(tabName = "detail",
               fluidRow(
-                box(
-                  solidHeader = T,
-                  leafletOutput("plot3"),
-                  width = 9
+                column(width = 9,
+                  box(
+                    solidHeader = T,
+                    leafletOutput("plot3"),
+                    width = NULL
+                  ),
+                  box(
+                    solidHeader = T,
+                    status = "primary",
+                    sliderTextInput(
+                      inputId = "zoomslider",
+                      label = "Level of Aggregation:",
+                      grid = T,
+                      force_edges = T,
+                      choices = c("Individual Points",
+                                  "Neighborhoods", "Districts"),
+                      hide_min_max = T
+                    ), width = NULL
+                  )
                 ),
-                box(
-                  solidHeader = T,
-                  sliderTextInput(
-                    inputId = "zoomslider",
-                    label = "Level of Aggregation:",
-                    grid = T,
-                    force_edges = TRUE,
-                    choices = c("Individual Points",
-                                "Neighborhoods", "Districts")
+                column(width = 3,
+                  box(
+                    selectInput("plotType", "Use Time Slider?",
+                                c(Yes = "yes", No = "no"),
+                                selected = "no"),
+                    conditionalPanel(
+                      condition = "input.plotType == 'yes'",
+                      knobInput(
+                        inputId = "Knob2",
+                        label = "Number of hours ago:",
+                        thickness = 0.35,
+                        value = 0,
+                        min = 0,
+                        max = 24,
+                        displayPrevious = F,
+                        lineCap = "round",
+                        fgColor = "#576a7d",
+                        bgColor = "#f2f4f5",
+                        inputColor = "#8ca4d4",
+                        pre = "-"
+                      )
+                    ), width = NULL
                   )
                 )
-              )
+           )
         )
     )
   )
@@ -194,6 +222,16 @@ server <- function(input, output) {
     
     date <- max(data_full$full_date)
     hour(date) <- hour(date) - input$Knob 
+    
+    data_full %>% 
+      filter(full_date == date)
+    
+  })   
+  
+  filt_data_detail <- reactive({
+    
+    date <- max(data_full$full_date)
+    hour(date) <- hour(date) - input$Knob2 
     
     data_full %>% 
       filter(full_date == date)
@@ -279,6 +317,71 @@ server <- function(input, output) {
     
   }, height = 200)
   
+  leaf_reactive <- reactive({
+    
+    if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
+      
+      filt_data_detail() 
+      
+    } else if (input$zoomslider == "Individual Points" & input$plotType == "no") {
+      
+      data_full
+      
+    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "yes") {
+      
+      coords <- filt_data_detail() %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+      
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(neibs))
+      
+      neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+      
+      neibs
+    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "no") {
+      
+      coords <- data_full %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+    
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(neibs))
+    
+      neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+      
+      neibs
+      
+    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
+      
+      coords <- filt_data_detail() %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+      
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(districts))
+      
+      districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+      
+      districts
+      
+    } else if (input$zoomslider == "Districts" & input$plotType == "no") {
+    
+      coords <- data_full %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+    
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(districts))
+    
+      districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+      
+      districts
+    
+    }
+      
+  })
+  
   static_plot <- reactive({
     
     if (input$zoomslider == "Individual Points") {
@@ -290,15 +393,15 @@ server <- function(input, output) {
                          options = providerTileOptions(opacity = 0.35)) %>% 
         addProviderTiles(providers$Stamen.TonerLabels) %>% 
         addCircleMarkers(lng = ~lon, lat = ~lat,
-                         data = data_full, radius = 1,
-                         color = "#60c957", opacity = 0.6)
+                         data = leaf_reactive(), radius = 1,
+                         color = "#e87910", opacity = 0.3)
       
     } else if (input$zoomslider == "Neighborhoods") {
       
-      pal <- colorNumeric(palette = "Oranges", domain = neibs$n)
-      labl <- paste0(neibs$name, "<br>", "scooters: ", neibs$n)
+      pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
+      labl <- paste0(leaf_reactive()$name, "<br>", "scooters: ", leaf_reactive()$n)
       
-      neibs %>% 
+      leaf_reactive() %>% 
         leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
         addProviderTiles(providers$MtbMap,
                          options = providerTileOptions(opacity = 0.35)) %>%
@@ -312,10 +415,10 @@ server <- function(input, output) {
       
     } else if (input$zoomslider == "Districts") {
       
-      pal <- colorNumeric(palette = "Oranges", domain = districts$n)
-      labl <- paste0("District ", districts$supervisor, "<br>", "scooters: ", districts$n)
+      pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
+      labl <- paste0(leaf_reactive()$name, "<br>", "scooters: ", leaf_reactive()$n)
       
-      districts %>% 
+      leaf_reactive() %>% 
         leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
         addProviderTiles(providers$MtbMap,
                          options = providerTileOptions(opacity = 0.35)) %>%
@@ -333,6 +436,7 @@ server <- function(input, output) {
   output$plot3 <- renderLeaflet({
     static_plot()
   })
+  
   
 }
 
