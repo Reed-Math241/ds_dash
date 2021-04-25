@@ -13,8 +13,9 @@ library(leaflet)
 
 ## data loading ----------------------------------------------------------------
 
-data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/scheduled-commit-action/master/data-raw/lime.csv")
+data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/schPull/master/data-folder/lime.csv")
 map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
+neibs <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_neibs.shp')
 top <- max(data_full$last_updated)
 top <- with_tz(top, "America/Los_Angeles")
 
@@ -65,6 +66,7 @@ ui <- dashboardPage(
     ),
   dashboardSidebar(
     sidebarMenu(
+      menuItem("About", tabName = "abt", icon = icon("question-circle")),
       menuItem("Trends", tabName = "trends", icon = icon("poll")),
       menuItem("In Detail", tabName = "detail", icon = icon("binoculars"))
     )
@@ -72,6 +74,10 @@ ui <- dashboardPage(
   dashboardBody(
     use_theme(mytheme),
     tabItems(
+      tabItem(
+        tabName = "abt",
+        p("test")
+      ),
       tabItem(tabName = "trends",
               fluidRow(
                 column(width = 9,
