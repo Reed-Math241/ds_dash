@@ -76,7 +76,28 @@ ui <- dashboardPage(
     tabItems(
       tabItem(
         tabName = "abt",
-        p("test")
+        fluidRow(
+          tags$head(
+            tags$style(HTML("
+              @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100&display=swap');
+              h2 {
+                font-family: 'Roboto Mono', sans-serif;
+                font-weight: 800;
+              }
+              p {
+                font-family: 'Roboto Mono', sans-serif;
+                font-weight: 800;
+              }"))
+          ),
+          box(
+            width = 12,
+            h2("About the Dashboard"),
+            p("The main purpose of this dashboard is to provide a way to explore and visualize the geolocations of 
+              lime scooters across San Francisco, California. The dashboard is split into two main components, a 'Trends' tab that 
+              shows the general distribution and density of lime scooters across space, and a 'In detail' tab that allows the user
+              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood", style = "font:Times")
+          )
+        )
       ),
       tabItem(tabName = "trends",
               fluidRow(
