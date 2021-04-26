@@ -244,6 +244,19 @@ server <- function(input, output) {
     date
   })
   
+  viewed_detail <- reactive({
+    
+    if (input$plotType == "yes") {
+      date <- max(data_full$full_date)
+      hour(date) <- hour(date) - input$Knob2
+      date
+    } else {
+      string = "Over the last 24 Hours"
+      string
+    }
+    
+  })
+  
   counts <- reactive({
     filt_data() %>% 
       count(full_date) %>% 
@@ -382,9 +395,49 @@ server <- function(input, output) {
       
   })
   
+  reactive_label <- reactive({
+    
+    if (input$zoomslider == "Neighborhoods" & input$plotType == "yes") {
+      
+      labl <- paste0("Neighborhood: ", leaf_reactive()$name,"<br><br>",
+                     leaf_reactive()$n, " scooters on ", "<br>",
+                     {format(viewed_detail(), "%B %d, at %H:%M %p")} )
+      
+    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "no") {
+      
+      labl <- paste0("Neighborhood: ", leaf_reactive()$name, "<br><br>",
+                     leaf_reactive()$n, " scooters over the last 24 hours")
+      
+    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
+      
+      labl <- paste0("District ", leaf_reactive()$name,"<br><br>",
+                     leaf_reactive()$n, " scooters on ", "<br>",
+                     {format(viewed_detail(), "%B %d, at %H:%M %p")} )
+      
+    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
+      
+      labl <- paste0("District ", leaf_reactive()$name, "<br><br>",
+                     leaf_reactive()$n, " scooters over the last 24 hours")
+      
+    } else if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
+      
+      labl <- paste0("Date/Time: ", {format(viewed_detail(), "%B %d, at %H:%M %p")} )
+      
+    } else if (input$zoomslider == "Individual Points" & input$plotType == "no") {
+      
+      labl <- paste0("Points over the last 24 hours")
+      
+    }
+    
+    labl
+    
+  })
+  
   static_plot <- reactive({
     
     if (input$zoomslider == "Individual Points") {
+      
+      labl <- reactive_label()
       
       leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
         addProviderTiles(providers$MtbMap,
@@ -394,12 +447,14 @@ server <- function(input, output) {
         addProviderTiles(providers$Stamen.TonerLabels) %>% 
         addCircleMarkers(lng = ~lon, lat = ~lat,
                          data = leaf_reactive(), radius = 1,
-                         color = "#e87910", opacity = 0.3)
+                         popup = labl,
+                         color = "#ad3e0e", opacity = 0.3)
       
     } else if (input$zoomslider == "Neighborhoods") {
       
       pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
-      labl <- paste0(leaf_reactive()$name, "<br>", "scooters: ", leaf_reactive()$n)
+      labl <- reactive_label()
+      
       
       leaf_reactive() %>% 
         leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
@@ -416,7 +471,7 @@ server <- function(input, output) {
     } else if (input$zoomslider == "Districts") {
       
       pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
-      labl <- paste0(leaf_reactive()$name, "<br>", "scooters: ", leaf_reactive()$n)
+      labl <- reactive_label()
       
       leaf_reactive() %>% 
         leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 

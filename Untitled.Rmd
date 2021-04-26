@@ -11,100 +11,7 @@ library(leaflet)
 ```
 
 ```{r}
-if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
-      
-      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-        addProviderTiles(providers$MtbMap,
-                         options = providerTileOptions(opacity = 0.35)) %>%
-        addProviderTiles(providers$Stamen.TonerLines,
-                         options = providerTileOptions(opacity = 0.35)) %>% 
-        addProviderTiles(providers$Stamen.TonerLabels) %>% 
-        addCircleMarkers(lng = ~lon, lat = ~lat,
-                         data = leaf_reactive(), radius = 1,
-                         color = "#e87910", opacity = 0.3)
-      
-    } else if (input$zoomslider == "Individual Points" & input$plotType == "no") {
-      
-      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-        addProviderTiles(providers$MtbMap,
-                         options = providerTileOptions(opacity = 0.35)) %>%
-        addProviderTiles(providers$Stamen.TonerLines,
-                         options = providerTileOptions(opacity = 0.35)) %>% 
-        addProviderTiles(providers$Stamen.TonerLabels) %>% 
-        addCircleMarkers(lng = ~lon, lat = ~lat,
-                         data = leaf_reactive(), radius = 1,
-                         color = "#e87910", opacity = 0.3)
-      
-    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "yes") {
-      
-      pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
-      labl <- paste0(leaf_reactive()$name, "<br>", "scooters: ", leaf_reactive()$n)
-      
-      leaf_reactive() %>% 
-        leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-        addProviderTiles(providers$MtbMap,
-                         options = providerTileOptions(opacity = 0.35)) %>%
-        addProviderTiles(providers$Stamen.TonerLines,
-                         options = providerTileOptions(opacity = 0.35)) %>% 
-        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
-        addPolylines(color = "black", weight = 1.5) %>% 
-        addLegend("bottomright", pal = pal, 
-                  values = ~n, title = "Number of scooters",
-                  opacity = 1)
-    
-    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "no") {
-      
-      pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
-      labl <- paste0(leaf_reactive()$name, "<br>", "scooters: ", leaf_reactive()$n)
-      
-      leaf_reactive() %>% 
-        leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-        addProviderTiles(providers$MtbMap,
-                         options = providerTileOptions(opacity = 0.35)) %>%
-        addProviderTiles(providers$Stamen.TonerLines,
-                         options = providerTileOptions(opacity = 0.35)) %>% 
-        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
-        addPolylines(color = "black", weight = 1.5) %>% 
-        addLegend("bottomright", pal = pal, 
-                  values = ~n, title = "Number of scooters",
-                  opacity = 1)
-      
-    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
-      
-      pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
-      labl <- paste0("District ", leaf_reactive()$supervisor, "<br>", "scooters: ", leaf_reactive()$n)
-      
-      leaf_reactive() %>% 
-        leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-        addProviderTiles(providers$MtbMap,
-                         options = providerTileOptions(opacity = 0.35)) %>%
-        addProviderTiles(providers$Stamen.TonerLines,
-                         options = providerTileOptions(opacity = 0.35)) %>% 
-        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
-        addPolylines(color = "black", weight = 1.5) %>% 
-        addLegend("bottomright", pal = pal, 
-                  values = ~n, title = "Number of scooters",
-                  opacity = 1)
-      
-    } else if (input$zoomslider == "Districts" & input$plotType == "no") {
-      
-      pal <- colorNumeric(palette = "Oranges", domain = leaf_reactive()$n)
-      labl <- paste0("District ", leaf_reactive()$supervisor, "<br>", "scooters: ", leaf_reactive()$n)
-      
-      leaf_reactive() %>% 
-        leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-        addProviderTiles(providers$MtbMap,
-                         options = providerTileOptions(opacity = 0.35)) %>%
-        addProviderTiles(providers$Stamen.TonerLines,
-                         options = providerTileOptions(opacity = 0.35)) %>% 
-        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
-        addPolylines(color = "black", weight = 1.5) %>% 
-        addLegend("bottomright", pal = pal, 
-                  values = ~n, title = "Number of scooters",
-                  opacity = 1)
-      
-    }
-  })
+
 ```
 
 
@@ -162,6 +69,55 @@ leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>%
 
 ```
 
+# old coords code
+```{r}
+coords <- data_full %>% 
+  select(lon, lat) %>%
+  st_as_sf(coords = c(1,2))
+
+coords_new <- coords %>% 
+  st_set_crs(st_crs(neibs))
+
+neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+
+districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+```
+
+
+```{r}
+
+d <- data.frame()
+
+time_counter <- function(df, level){
+  #input is our full df
+  
+  for (i in df$last_updated) {
+    
+    new_l <- level
+    
+    filt_df <- df %>% 
+      filter(last_updated == i)
+      
+    coords <-  filt_df %>% 
+      select(lon, lat) %>%
+      st_as_sf(coords = c(1,2))
+    
+    coords_new <- coords %>% 
+      st_set_crs(st_crs(neibs))
+    
+    #new_l$n <- lengths(st_intersection(neibs$geometry, coords_new))
+    
+    #new_l$dattim <- i
+    
+    #d <- rbind(d, new_l)
+    
+  }
+  d
+  
+}
+
+time_counter(t, districts)
+```
 
 ## San Francisco neighborhoods
 
