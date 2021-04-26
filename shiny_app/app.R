@@ -59,16 +59,7 @@ data_full <- data_full %>%
     T ~ "AM"
   )) 
 
-coords <- data_full %>% 
-  select(lon, lat) %>%
-  st_as_sf(coords = c(1,2))
 
-coords_new <- coords %>% 
-  st_set_crs(st_crs(neibs))
-
-neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
-
-districts$n <- lengths(st_intersects(districts$geometry, coords_new))
 
 
 ## dashboard -------------------------------------------------------------------
@@ -205,6 +196,11 @@ ui <- dashboardPage(
                         pre = "-"
                       )
                     ), width = NULL
+                  ),
+                  box(
+                    solidHeader = T,
+                    plotOutput("tester"),
+                    width = NULL
                   )
                 )
            )
@@ -329,6 +325,25 @@ server <- function(input, output) {
       ) 
     
   }, height = 200)
+  
+  selected_zone <- reactive({
+    
+    p <- input$plot3_shape_click
+    
+    neibs %>% 
+      filter(name == p$id)
+    
+  })
+  
+  output$tester <- renderPlot({
+    
+    selected_zone() %>% 
+      ggplot() +
+      geom_sf()
+    
+  })
+  
+  
   
   leaf_reactive <- reactive({
     
@@ -462,7 +477,7 @@ server <- function(input, output) {
                          options = providerTileOptions(opacity = 0.35)) %>%
         addProviderTiles(providers$Stamen.TonerLines,
                          options = providerTileOptions(opacity = 0.35)) %>% 
-        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl, layerId = ~name) %>% 
         addPolylines(color = "black", weight = 1.5) %>% 
         addLegend("bottomright", pal = pal, 
                   values = ~n, title = "Number of scooters",
@@ -479,7 +494,7 @@ server <- function(input, output) {
                          options = providerTileOptions(opacity = 0.35)) %>%
         addProviderTiles(providers$Stamen.TonerLines,
                          options = providerTileOptions(opacity = 0.35)) %>% 
-        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+        addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl, layerId = ~supervisor) %>% 
         addPolylines(color = "black", weight = 1.5) %>% 
         addLegend("bottomright", pal = pal, 
                   values = ~n, title = "Number of scooters",

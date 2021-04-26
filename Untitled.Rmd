@@ -10,9 +10,7 @@ library(sf)
 library(leaflet)
 ```
 
-```{r}
 
-```
 
 
 ## testing bikeshare data and general outline of sf map data
@@ -59,7 +57,7 @@ leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>%
                    options = providerTileOptions(opacity = 0.35)) %>%
   addProviderTiles(providers$Stamen.TonerLines,
                    options = providerTileOptions(opacity = 0.35)) %>% 
-  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl, layerId = ~id) %>% 
   addPolylines(color = "black", weight = 1.5) %>% 
   addLegend("bottomright", pal = pal, 
             values = ~n, title = "Number of scooters",
@@ -83,40 +81,69 @@ neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
 districts$n <- lengths(st_intersects(districts$geometry, coords_new))
 ```
 
+# time pull function
+
+
 
 ```{r}
 
-d <- data.frame()
+data_full <- t %>% 
+  separate(
+    last_updated,
+    into = c("for_slider", "extra"),
+    remove = F, sep = ":"
+    ) %>% 
+  mutate(full_date = ymd_h(for_slider)) %>% 
+  mutate(
+    hr = str_sub(full_date, -2),
+    hr = as.numeric(hr)
+    ) %>% 
+  mutate(full_date = with_tz(full_date, "America/Los_Angeles")) %>% 
+  mutate(pm_am = case_when(
+    hr >= 12 & hr < 24 ~ "PM",
+    T ~ "AM"
+  ))
 
-time_counter <- function(df, level){
-  #input is our full df
+unique_dates <- data_full %>% 
+  distinct(full_date)
+
+dd <- data.frame()
+
+for (i in 1:2) {
   
-  for (i in df$last_updated) {
-    
-    new_l <- level
-    
-    filt_df <- df %>% 
-      filter(last_updated == i)
-      
-    coords <-  filt_df %>% 
-      select(lon, lat) %>%
-      st_as_sf(coords = c(1,2))
-    
-    coords_new <- coords %>% 
+  filt <- data_full %>% 
+    filter(full_date == unique_dates$full_date[[i]])
+
+  
+  coords <- filt %>% 
+    select(lon, lat) %>% 
+    st_as_sf(coords = c(1,2))
+  
+  coords_new <- coords %>% 
       st_set_crs(st_crs(neibs))
-    
-    #new_l$n <- lengths(st_intersection(neibs$geometry, coords_new))
-    
-    #new_l$dattim <- i
-    
-    #d <- rbind(d, new_l)
-    
-  }
-  d
+  
+  neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+  
+  neibs$datt <- unique_dates$full_date[[i]]
+  
+  dd <- rbind(dd, neibs)
   
 }
 
-time_counter(t, districts)
+# this should work
+dd %>% 
+  as_tibble() %>% 
+  select(-link, -geometry) %>% 
+  group_by(name) %>% 
+  summarise(smallest = min(n), biggest = max(n)) %>% 
+  ungroup() %>% 
+  mutate(mid = (smallest + biggest)/2) %>% 
+  mutate(name = fct_reorder(name, mid)) %>% 
+  ggplot(aes(x = name, ymin = smallest, ymax = biggest)) +
+  geom_linerange() +
+  coord_flip()
+
+
 ```
 
 ## San Francisco neighborhoods
