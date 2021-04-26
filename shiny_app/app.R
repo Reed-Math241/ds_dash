@@ -176,6 +176,7 @@ ui <- dashboardPage(
                 ),
                 column(width = 3,
                   box(
+                    solidHeader = T,
                     selectInput("plotType", "Use Time Slider?",
                                 c(Yes = "yes", No = "no"),
                                 selected = "no"),
@@ -199,7 +200,10 @@ ui <- dashboardPage(
                   ),
                   box(
                     solidHeader = T,
-                    plotOutput("tester"),
+                    conditionalPanel(
+                      condition = "input.zoomslider == 'Neighborhoods' || input.zoomslider == 'Districts'",
+                      plotOutput("tester")
+                      ),
                     width = NULL
                   )
                 )
@@ -330,8 +334,18 @@ server <- function(input, output) {
     
     p <- input$plot3_shape_click
     
-    neibs %>% 
-      filter(name == p$id)
+    if (input$zoomslider == "Neighborhoods") {
+      
+      neibs %>% 
+        filter(name == p$id)
+      
+    } else if (input$zoomslider == "Districts") {
+      
+      districts %>% 
+        filter(supervisor == p$id)
+      
+    } 
+  
     
   })
   
