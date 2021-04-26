@@ -86,7 +86,6 @@ districts$n <- lengths(st_intersects(districts$geometry, coords_new))
 
 
 ```{r}
-
 data_full <- t %>% 
   separate(
     last_updated,
@@ -102,33 +101,51 @@ data_full <- t %>%
   mutate(pm_am = case_when(
     hr >= 12 & hr < 24 ~ "PM",
     T ~ "AM"
-  ))
+  )) 
 
-unique_dates <- data_full %>% 
-  distinct(full_date)
 
-dd <- data.frame()
 
-for (i in 1:2) {
+test <- function(sf_obj) {
   
-  filt <- data_full %>% 
-    filter(full_date == unique_dates$full_date[[i]])
-
+  counted <- data.frame()
   
-  coords <- filt %>% 
-    select(lon, lat) %>% 
-    st_as_sf(coords = c(1,2))
+  unique_dates <- data_full %>% 
+    distinct(full_date)
   
-  coords_new <- coords %>% 
-      st_set_crs(st_crs(neibs))
+  for (i in 1:nrow(unique_dates)) {
+    
+    filt <- data_full %>% 
+      filter(full_date == unique_dates$full_date[[i]])
+    
+    coords <- filt %>% 
+      select(lon, lat) %>% 
+      st_as_sf(coords = c(1,2))
   
-  neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+    coords_new <- coords %>% 
+      st_set_crs(st_crs(sf_obj))
+    
+    sf_obj$n <- lengths(st_intersects(sf_obj$geometry, coords_new))
   
-  neibs$datt <- unique_dates$full_date[[i]]
+    sf_obj$datt <- unique_dates$full_date[[i]]
   
-  dd <- rbind(dd, neibs)
+    counted <- rbind(counted, sf_obj)
+    
+    
+  }
+  
+  counted %>% 
+    as_tibble() %>% 
+    select(-geometry)
   
 }
+
+t <- test(districts)
+
+
+t %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+
 
 # this should work
 dd %>% 

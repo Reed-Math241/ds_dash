@@ -59,6 +59,46 @@ data_full <- data_full %>%
     T ~ "AM"
   )) 
 
+# a helper function to grab counts for a given sf object
+
+get_counts <- function(sf_obj) {
+  
+  counted <- data.frame()
+  
+  unique_dates <- data_full %>% 
+    distinct(full_date)
+  
+  for (i in 1:nrow(unique_dates)) {
+    
+    filt <- data_full %>% 
+      filter(full_date == unique_dates$full_date[[i]])
+    
+    coords <- filt %>% 
+      select(lon, lat) %>% 
+      st_as_sf(coords = c(1,2))
+    
+    coords_new <- coords %>% 
+      st_set_crs(st_crs(sf_obj))
+    
+    sf_obj$n <- lengths(st_intersects(sf_obj$geometry, coords_new))
+    
+    sf_obj$datt <- unique_dates$full_date[[i]]
+    
+    counted <- rbind(counted, sf_obj)
+    
+    
+  }
+  
+  counted %>% 
+    as_tibble() %>% 
+    select(-geometry)
+  
+}
+
+neib_counts <- get_counts(neibs)
+
+districts_counts <- get_counts(districts)
+                          
 
 
 
@@ -201,7 +241,8 @@ ui <- dashboardPage(
                   box(
                     solidHeader = T,
                     conditionalPanel(
-                      condition = "input.zoomslider == 'Neighborhoods' || input.zoomslider == 'Districts'",
+                      condition = "(input.zoomslider == 'Neighborhoods' & input.plotType == 'no') 
+                      || (input.zoomslider == 'Districts' & input.plotType == 'no')",
                       plotOutput("tester")
                       ),
                     width = NULL
@@ -336,13 +377,21 @@ server <- function(input, output) {
     
     if (input$zoomslider == "Neighborhoods") {
       
-      neibs %>% 
-        filter(name == p$id)
+      if (is.null(p)) {
+        neib_counts
+      } else {
+        neib_counts %>% 
+          filter(name == p$id)
+      }
       
     } else if (input$zoomslider == "Districts") {
       
-      districts %>% 
-        filter(supervisor == p$id)
+      if (is.null(p)) {
+        districts_counts
+      } else {
+        districts_counts %>% 
+          filter(supervisor == p$id)
+      }
       
     } 
   
@@ -352,8 +401,13 @@ server <- function(input, output) {
   output$tester <- renderPlot({
     
     selected_zone() %>% 
-      ggplot() +
-      geom_sf()
+      ggplot(aes(x = n)) +
+      geom_density(fill = "midnightblue") +
+      labs(
+        x = "Number of scooters",
+        title = "Distribution of scooters over the last 23 hours"
+      ) +
+      theme_minimal()
     
   })
   
@@ -443,7 +497,7 @@ server <- function(input, output) {
                      leaf_reactive()$n, " scooters on ", "<br>",
                      {format(viewed_detail(), "%B %d, at %H:%M %p")} )
       
-    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
+    } else if (input$zoomslider == "Districts" & input$plotType == "no") {
       
       labl <- paste0("District ", leaf_reactive()$name, "<br><br>",
                      leaf_reactive()$n, " scooters over the last 24 hours")
@@ -521,6 +575,7 @@ server <- function(input, output) {
     static_plot()
   })
   
+
   
 }
 
