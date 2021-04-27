@@ -405,7 +405,7 @@ server <- function(input, output) {
       geom_density(fill = "midnightblue") +
       labs(
         x = "Number of scooters",
-        title = "Distribution of scooters over the last 23 hours"
+        title = "Distribution of scooters \n over the last 24 hours"
       ) +
       theme_minimal()
     
@@ -493,13 +493,13 @@ server <- function(input, output) {
       
     } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
       
-      labl <- paste0("District ", leaf_reactive()$name,"<br><br>",
+      labl <- paste0("District ", leaf_reactive()$supervisor,"<br><br>",
                      leaf_reactive()$n, " scooters on ", "<br>",
                      {format(viewed_detail(), "%B %d, at %H:%M %p")} )
       
     } else if (input$zoomslider == "Districts" & input$plotType == "no") {
       
-      labl <- paste0("District ", leaf_reactive()$name, "<br><br>",
+      labl <- paste0("District ", leaf_reactive()$supervisor, "<br><br>",
                      leaf_reactive()$n, " scooters over the last 24 hours")
       
     } else if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
