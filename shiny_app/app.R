@@ -126,11 +126,11 @@ ui <- dashboardPage(
               @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100&display=swap');
               h2 {
                 font-family: 'Roboto Mono', sans-serif;
-                font-weight: 800;
+                font-weight: 850;
               }
               p {
                 font-family: 'Roboto Mono', sans-serif;
-                font-weight: 800;
+                font-weight: 850;
               }"))
           ),
           box(
