@@ -139,7 +139,14 @@ ui <- dashboardPage(
             p("The main purpose of this dashboard is to provide a way to explore and visualize the geolocations of 
               lime scooters across San Francisco, California. The dashboard is split into two main components, a 'Trends' tab that 
               shows the general distribution and density of lime scooters across space, and a 'In detail' tab that allows the user
-              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood", style = "font:Times")
+              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood"),
+            p("Wonderfully, there is a plethora of Bikeshare data released through the 'General Bikeshare Feed Specification' which is
+              a standardized data feed. Even more wonderfully, there is a package in R written by Simon Couch, fittingly called", tags$a(href = "https://github.com/simonpcouch/gbfs", "gbfs") 
+              ,",that makes pulling the data into R very easy. But when pulling bikeshare data, what you get is the most recent data/geolocations 
+              pertaining to your query. In other words when pulling in the data you'd get all the data from the most recent time it was updated, but nothing from any previous updates. Since I wanted
+              to look at how lime scooter density changed over time I had to figure out a way to accumulate the bikeshare data. Furthermore, there are thousands of lime scooters
+              scattered across San Francisco, so when you pullinng data every hour you very quickly get a very large dataset. So the job was to find a way
+              to pull and accumulate bikeshare data every hour, while making sure to only keep data from the last 24 hours.")
           )
         )
       ),
@@ -265,7 +272,9 @@ server <- function(input, output) {
     hour(date) <- hour(date) - input$Knob 
     
     data_full %>% 
-      filter(full_date == date)
+      filter(full_date == date) %>% 
+      filter(lat < 37.85, lat > 37.69) %>% 
+      filter(lon > -122.54, lon < -122.32)
     
   })   
   
