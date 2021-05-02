@@ -128,6 +128,10 @@ ui <- dashboardPage(
                 font-family: 'Roboto Mono', sans-serif;
                 font-weight: 850;
               }
+              h3 {
+                font-family: 'Roboto Mono', sans-serif;
+                font-weight: 1000;
+              }
               p {
                 font-family: 'Roboto Mono', sans-serif;
                 font-weight: 850;
@@ -138,15 +142,19 @@ ui <- dashboardPage(
             h2("About the Dashboard"),
             p("The main purpose of this dashboard is to provide a way to explore and visualize the geolocations of 
               lime scooters across San Francisco, California. The dashboard is split into two main components, a 'Trends' tab that 
-              shows the general distribution and density of lime scooters across space, and a 'In detail' tab that allows the user
-              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood"),
+              shows the general distribution and density of lime scooters across space, and an 'In detail' tab that allows the user
+              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood as well as district. Each
+              component includes a temporal component where the user can interact with a slider that controls how far back in time you want to look."),
+            h3("Collecting the Data"),
             p("Wonderfully, there is a plethora of Bikeshare data released through the 'General Bikeshare Feed Specification' which is
               a standardized data feed. Even more wonderfully, there is a package in R written by Simon Couch, fittingly called", tags$a(href = "https://github.com/simonpcouch/gbfs", "gbfs") 
-              ,",that makes pulling the data into R very easy. But when pulling bikeshare data, what you get is the most recent data/geolocations 
-              pertaining to your query. In other words when pulling in the data you'd get all the data from the most recent time it was updated, but nothing from any previous updates. Since I wanted
-              to look at how lime scooter density changed over time I had to figure out a way to accumulate the bikeshare data. Furthermore, there are thousands of lime scooters
-              scattered across San Francisco, so when you pullinng data every hour you very quickly get a very large dataset. So the job was to find a way
-              to pull and accumulate bikeshare data every hour, while making sure to only keep data from the last 24 hours.")
+              ,",that makes pulling the data into R very easy. But when pulling bikeshare data, what you get is the data from when it was last updated, but nothing from previous updates. 
+              Since I wanted to look at how lime scooter density changed over time I had to figure out a way to accumulate the bikeshare data. Furthermore, there are thousands of lime scooters
+              scattered across San Francisco, so when you pulling data every hour you very quickly get a very large dataset. In the end the job was to find a way
+              to pull and accumulate bikeshare data every hour, while making sure to only keep data from the last 24 hours."),
+            p("I decided to use github actions to run a script on a schedule to accomplish this. All my script does is loads in the most recent update
+              of the bikshare data, binds it to my existing data set and then filters the joined data set to only include observations with timestamps in the last 24 hours. The repository where this
+              is running is public and can be found", tags$a(href = "https://github.com/joshyam-k/schPull", "here"))
           )
         )
       ),
@@ -284,7 +292,9 @@ server <- function(input, output) {
     hour(date) <- hour(date) - input$Knob2 
     
     data_full %>% 
-      filter(full_date == date)
+      filter(full_date == date) %>% 
+      filter(lat < 37.85, lat > 37.69) %>% 
+      filter(lon > -122.54, lon < -122.32)
     
   })   
   
@@ -331,7 +341,7 @@ server <- function(input, output) {
       theme_void() +
       labs(
         caption = glue("Last updated: {top}"),
-        fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at %H:%M %p")} \n in San Francisco')
+        fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at around \n %H:%M %p")} in \n San Francisco')
       ) +
       theme(
         plot.caption = element_text(family = "Roboto Mono", hjust = 1, size = 12 ),
@@ -491,24 +501,24 @@ server <- function(input, output) {
     
     if (input$zoomslider == "Neighborhoods" & input$plotType == "yes") {
       
-      labl <- paste0("Neighborhood: ", leaf_reactive()$name,"<br><br>",
+      labl <- paste0("<b>Neighborhood: ", leaf_reactive()$name,"</b><br><br>",
                      leaf_reactive()$n, " scooters on ", "<br>",
                      {format(viewed_detail(), "%B %d, at %H:%M %p")} )
       
     } else if (input$zoomslider == "Neighborhoods" & input$plotType == "no") {
       
-      labl <- paste0("Neighborhood: ", leaf_reactive()$name, "<br><br>",
+      labl <- paste0("<b>Neighborhood: ", leaf_reactive()$name, "</b><br><br>",
                      leaf_reactive()$n, " scooters over the last 24 hours")
       
     } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
       
-      labl <- paste0("District ", leaf_reactive()$supervisor,"<br><br>",
+      labl <- paste0("<b>District ", leaf_reactive()$supervisor,"</b><br><br>",
                      leaf_reactive()$n, " scooters on ", "<br>",
                      {format(viewed_detail(), "%B %d, at %H:%M %p")} )
       
     } else if (input$zoomslider == "Districts" & input$plotType == "no") {
       
-      labl <- paste0("District ", leaf_reactive()$supervisor, "<br><br>",
+      labl <- paste0("<b>District ", leaf_reactive()$supervisor, "</b><br><br>",
                      leaf_reactive()$n, " scooters over the last 24 hours")
       
     } else if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
