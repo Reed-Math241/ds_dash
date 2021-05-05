@@ -20,6 +20,14 @@ districts <- st_read("/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_districts.
 top <- max(data_full$last_updated)
 top <- with_tz(top, "America/Los_Angeles")
 
+
+
+neibs <- neibs %>% 
+  mutate(id = row_number())
+
+districts <- districts %>% 
+  mutate(id = row_number())
+
 ## fresh theme -----------------------------------------------------------------
 
 mytheme <- create_theme(
@@ -58,6 +66,19 @@ data_full <- data_full %>%
     hr >= 12 & hr < 24 ~ "PM",
     T ~ "AM"
   )) 
+
+# some data objects for leaflet plots
+
+coords <- data_full %>% 
+  select(lon, lat) %>% 
+  st_as_sf(coords = c(1,2))
+
+coords <- coords %>% 
+  st_set_crs(st_crs(districts))
+
+indices_dists <- st_intersects(districts$geometry, coords)
+indices_neibs <- st_intersects(neibs$geometry, coords)
+
 
 # a helper function to grab counts for a given sf object
 
@@ -463,6 +484,22 @@ server <- function(input, output) {
     
   })
   
+  smallzone_points <- reactive({
+    
+    index <- small_mapzone()$id[[1]]
+    
+    if (input$zoomslider == 'Neighborhoods') {
+      
+      points <- data_full[c(indices_neibs[[index]]), ]
+      
+    } else if (input$zoomslider == 'Districts') {
+      
+      points <- data_full[c(indices_dists[[index]]), ]
+    }
+  
+    points
+    
+  })
 
   
   output$smallmap <- renderLeaflet({
@@ -474,7 +511,9 @@ server <- function(input, output) {
       addPolylines(color = "red", weight = 4) %>% 
       addProviderTiles(providers$Stamen.TonerLines,
                        options = providerTileOptions(opacity = 0.85)) %>% 
-      addProviderTiles(providers$Esri.NatGeoWorldMap) 
+      addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+      addCircleMarkers(lng = ~lon, lat = ~lat,
+                       data = smallzone_points(), radius = 1)
     
   })
   
