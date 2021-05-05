@@ -74,9 +74,15 @@ leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>%
   addCircleMarkers(lng = ~lon, lat = ~lat,
                      data = test, radius = 1)
 
+districts_test <- districts %>% 
+  mutate(id = row_number())
+
 
 
 indices_t <- st_intersects(districts$geometry, coords_new)
+
+districts[districts$supervisor == 10, ] %>% 
+  View()
 
 test <- t[c(indices_t[[7]]), ]
 
@@ -197,10 +203,23 @@ coords_new <- coords %>% st_set_crs(st_crs(neibs))
 
 neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
 
+lls <- st_intersects(neibs$geometry, coords_new)
+
 neibs %>% 
   ggplot() +
   geom_sf() +
   geom_sf(data = coords_new)
+
+neibs %>% 
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.15)) %>%
+  addPolylines(color = "red", weight = 4) %>% 
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.85)) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+  addCircleMarkers(lng = ~lon, lat = ~lat,
+                     data = , radius = 1)
 ```
 
 using leaflet

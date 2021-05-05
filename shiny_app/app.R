@@ -227,6 +227,15 @@ ui <- dashboardPage(
                                   "Neighborhoods", "Districts"),
                       hide_min_max = T
                     ), width = NULL
+                  ),
+                  box(
+                    solidHeader = T,
+                    conditionalPanel(
+                      condition = "(input.zoomslider == 'Neighborhoods' & input.plotType == 'no') 
+                      || (input.zoomslider == 'Districts' & input.plotType == 'no')",
+                      plotOutput("tester")
+                    ),
+                    width = NULL
                   )
                 ),
                 column(width = 3,
@@ -256,11 +265,9 @@ ui <- dashboardPage(
                   box(
                     solidHeader = T,
                     conditionalPanel(
-                      condition = "(input.zoomslider == 'Neighborhoods' & input.plotType == 'no') 
-                      || (input.zoomslider == 'Districts' & input.plotType == 'no')",
-                      plotOutput("tester")
-                      ),
-                    width = NULL
+                      condition = "input.zoomslider == 'Neighborhoods' || input.zoomslider == 'Districts'",
+                      leafletOutput('smallmap')
+                    ), width = NULL
                   )
                 )
            )
@@ -428,6 +435,47 @@ server <- function(input, output) {
       ) +
       theme_minimal()
     
+  }, height = 220)
+  
+  small_mapzone <- reactive({
+    
+    p <- input$plot3_shape_click
+    
+    if (input$zoomslider == 'Neighborhoods'){
+      
+      if (is.null(p)) {
+        neibs
+      } else {
+        neibs %>% 
+          filter(name == p$id)
+      } 
+      
+    } else if (input$zoomslider == 'Districts') {
+      
+      if (is.null(p)) {
+        districts
+      } else {
+        districts %>% 
+          filter(supervisor == p$id)
+      }
+      
+    }
+    
+  })
+  
+
+  
+  output$smallmap <- renderLeaflet({
+    
+    small_mapzone() %>% 
+      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+      addProviderTiles(providers$MtbMap,
+                       options = providerTileOptions(opacity = 0.15)) %>%
+      addPolylines(color = "red", weight = 4) %>% 
+      addProviderTiles(providers$Stamen.TonerLines,
+                       options = providerTileOptions(opacity = 0.85)) %>% 
+      addProviderTiles(providers$Esri.NatGeoWorldMap) 
+    
   })
   
   
@@ -594,6 +642,8 @@ server <- function(input, output) {
     static_plot()
   })
   
+  
+
 
   
 }
