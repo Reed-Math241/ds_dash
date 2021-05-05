@@ -54,15 +54,31 @@ districts %>%
 leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
   addProviderTiles(providers$MtbMap,
                    options = providerTileOptions(opacity = 0.35)) %>%
+  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+  addPolylines(color = "black", weight = 1.5) %>% 
   addProviderTiles(providers$Stamen.TonerLines,
                    options = providerTileOptions(opacity = 0.35)) %>% 
-  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl, layerId = ~id) %>% 
-  addPolylines(color = "black", weight = 1.5) %>% 
   addLegend("bottomright", pal = pal, 
             values = ~n, title = "Number of scooters",
             opacity = 1)
 
+districts %>% 
+  filter(supervisor == 4) %>% 
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.15)) %>%
+  addPolylines(color = "red", weight = 4) %>% 
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.85)) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+  addCircleMarkers(lng = ~lon, lat = ~lat,
+                     data = test, radius = 1)
 
+
+
+indices_t <- st_intersects(districts$geometry, coords_new)
+
+test <- t[c(indices_t[[7]]), ]
 
 ```
 
@@ -142,8 +158,10 @@ t <- test(districts)
 
 
 t %>% 
-  ggplot(aes(x = n)) +
-  geom_histogram()
+  filter(supdistpad == '01') %>% 
+  ggplot(aes(x = datt, y = n)) +
+  geom_line() +
+  ylim(c(0,75))
 
 
 # this should work
