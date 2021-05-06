@@ -14,9 +14,9 @@ library(leaflet)
 ## data loading ----------------------------------------------------------------
 
 data_full <- readr::read_csv("https://raw.githubusercontent.com/joshyam-k/schPull/master/data-folder/lime.csv")
-map <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_boundary1.shp')
-neibs <- st_read('/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_neibs.shp')
-districts <- st_read("/Users/joshuayamamoto/test/ds_dash/shiny_app/sf_districts.shp")
+map <- st_read('sf_boundary1.shp')
+neibs <- st_read('sf_neibs.shp')
+districts <- st_read("sf_districts.shp")
 top <- max(data_full$last_updated)
 top <- with_tz(top, "America/Los_Angeles")
 
@@ -35,7 +35,7 @@ mytheme <- create_theme(
     light_blue = "#717b85"
   ),
   adminlte_sidebar(
-    width = "300px",
+    width = "330px",
     dark_bg = "#444e59",
     dark_hover_bg = "#9ca8b5",
     dark_hover_color = "#f7faf9",
@@ -131,10 +131,12 @@ ui <- dashboardPage(
     ),
   dashboardSidebar(
     sidebarMenu(
+      id = 'tabs',
       menuItem("About", tabName = "abt", icon = icon("question-circle")),
       menuItem("Trends", tabName = "trends", icon = icon("poll")),
       menuItem("In Detail", tabName = "detail", icon = icon("binoculars"))
-    )
+    ),
+    htmlOutput('res')
   ),
   dashboardBody(
     use_theme(mytheme),
@@ -156,6 +158,7 @@ ui <- dashboardPage(
               p {
                 font-family: 'Roboto Mono', sans-serif;
                 font-weight: 850;
+                font-size: 12px;
               }"))
           ),
           box(
@@ -169,9 +172,10 @@ ui <- dashboardPage(
             h3("Collecting the Data"),
             p("Wonderfully, there is a plethora of Bikeshare data released through the 'General Bikeshare Feed Specification' which is
               a standardized data feed. Even more wonderfully, there is a package in R written by Simon Couch, fittingly called", tags$a(href = "https://github.com/simonpcouch/gbfs", "gbfs") 
-              ,",that makes pulling the data into R very easy. But when pulling bikeshare data, what you get is the data from when it was last updated, but nothing from previous updates. 
+              ,",that makes pulling the data into R very easy. That being said, when pulling bikeshare data what you get is the data from when it was last updated, but nothing from previous updates. 
               Since I wanted to look at how lime scooter density changed over time I had to figure out a way to accumulate the bikeshare data. Furthermore, there are thousands of lime scooters
-              scattered across San Francisco, so when you pulling data every hour you very quickly get a very large dataset. In the end the job was to find a way
+              scattered across San Francisco, so when pulling data every hour you very quickly get an extremely large dataset. I decided to limit how far back I wanted to keep data from to 24 hours,
+              since I thought many interesting things could be gleaned from that amount of time and I wanted to avoid having a sluggish shiny app. So, in the end the main task was to find a way
               to pull and accumulate bikeshare data every hour, while making sure to only keep data from the last 24 hours."),
             p("I decided to use github actions to run a script on a schedule to accomplish this. All my script does is loads in the most recent update
               of the bikshare data, binds it to my existing data set and then filters the joined data set to only include observations with timestamps in the last 24 hours. The repository where this
@@ -286,9 +290,14 @@ ui <- dashboardPage(
                   box(
                     solidHeader = T,
                     conditionalPanel(
-                      condition = "input.zoomslider == 'Neighborhoods' || input.zoomslider == 'Districts'",
+                      condition = "input.zoomslider == 'Neighborhoods'",
                       leafletOutput('smallmap')
-                    ), width = NULL
+                    ),
+                    conditionalPanel(
+                      condition = "input.zoomslider == 'Districts'",
+                      leafletOutput('smallmap2')
+                    ),
+                    width = NULL
                   )
                 )
            )
@@ -368,15 +377,15 @@ server <- function(input, output) {
       ) +
       theme_void() +
       labs(
-        caption = glue("Last updated: {top}"),
-        fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at around \n %H:%M %p")} in \n San Francisco')
+        caption = glue("Last updated: {top}")#,
+        #fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at around \n %H:%M %p")} in \n San Francisco')
       ) +
       theme(
-        plot.caption = element_text(family = "Roboto Mono", hjust = 1, size = 12 ),
+        plot.caption = element_text(hjust = 1, size = 12 ),
         legend.position = "left",
         legend.key.size = unit(1, "cm"),
-        legend.text = element_text(size = 9, family = "Roboto Mono"),
-        legend.title = element_text(size = 15, family = "Roboto Mono")
+        legend.text = element_text(size = 9),
+        legend.title = element_text(size = 15)
       ) +
       guides(fill = guide_colorbar(title.position = "left"))
     
@@ -418,6 +427,102 @@ server <- function(input, output) {
     
   }, height = 200)
   
+  output$res <- renderUI({
+    
+    if (input$tabs == 'abt') {
+      
+      text <- " "
+      
+    } else if (input$tabs == 'trends') {
+      
+      text <- HTML(paste(p('This tab primarily serves to help the user visualize how lime scooter density across the entirety of San Francisco changes over time.
+               In the primary map, space is divided into regular hexagons. Hexagonal areas with lime scooters in them are colored green and the shade of
+               green corresponds to how many scooters are in that area. The user also has 6 different options for how many hexagons they want the space divided into
+               with higher values resulting in finer density detail.'), p('The user can also change how far back in time they want to look using the slider on the right.
+               the page defaults to showing the data from when it was most recently updated, but the user can go as far as 24 hours back to see what the data looked like then.'),
+               p('Finally the barchart at the bottom shows how many lime scooters there were in total in San Francisco by the hour and the bar corresponding to the 
+               time chosen by the user is highlighted.')))
+      
+    } else if (input$tabs == 'detail') {
+      
+      text <- HTML(paste(p('This tab functions similarly to the trends tab, but now the level of aggregation can be chosen by the user.'),
+                         p('Again the user can use the time slider, but this time must select whether they want to use it or not. The reason for this
+                           becomes apparent when choosing a new level of aggregation. When the user selects either "Neighborhoods", or "Districts" a density plot
+                           pops up showing the distribution of scooter counts over the last 24 hours, this plot can only be accessed when the time slider is not being used'),
+                         p('When looking at the data at a Neighborhood or District level the user can also click on a region on the map and the density plot will become
+                           specific to that neighborhood, and the smaller map on the right will show the exact locations of the scooters in that region.')))
+      
+    }
+    
+    text
+    
+  })
+  
+  leaf_reactive <- reactive({
+    
+    if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
+      
+      filt_data_detail() 
+      
+    } else if (input$zoomslider == "Individual Points" & input$plotType == "no") {
+      
+      data_full
+      
+    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "yes") {
+      
+      coords <- filt_data_detail() %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+      
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(neibs))
+      
+      neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+      
+      neibs
+    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "no") {
+      
+      coords <- data_full %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+      
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(neibs))
+      
+      neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
+      
+      neibs
+      
+    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
+      
+      coords <- filt_data_detail() %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+      
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(districts))
+      
+      districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+      
+      districts
+      
+    } else if (input$zoomslider == "Districts" & input$plotType == "no") {
+      
+      coords <- data_full %>% 
+        select(lon, lat) %>%
+        st_as_sf(coords = c(1,2))
+      
+      coords_new <- coords %>% 
+        st_set_crs(st_crs(districts))
+      
+      districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+      
+      districts
+      
+    }
+    
+  })
+  
   selected_zone <- reactive({
     
     p <- input$plot3_shape_click
@@ -445,6 +550,41 @@ server <- function(input, output) {
     
   })
   
+  density_title <- reactive({
+    
+    p <- input$plot3_shape_click
+    
+    if (input$zoomslider == 'Districts') {
+      
+      if (is.null(p)) {
+        
+        title <- 'Distribution of number of scooters over the last 24 hours \n in San Francisco'
+        
+      } else {
+        
+        title <- glue('Distribution of number of scooters over the last 24 hours \n in District {selected_zone()$supervisor[[1]]}')
+        
+      }
+      
+      
+    } else if (input$zoomslider == 'Neighborhoods') {
+      
+      if (is.null(p)) {
+        
+        title <- 'Distribution of number of scooters over the last 24 hours \n in San Francisco'
+        
+      } else {
+        
+        title <- glue('Distribution of number of scooters over the last 24 hours \n in {selected_zone()$name[[1]]}')
+        
+      }
+      
+    }
+    
+    title
+    
+  })
+  
   output$tester <- renderPlot({
     
     selected_zone() %>% 
@@ -452,7 +592,7 @@ server <- function(input, output) {
       geom_density(fill = "midnightblue") +
       labs(
         x = "Number of scooters",
-        title = "Distribution of scooters \n over the last 24 hours"
+        title = density_title()
       ) +
       theme_minimal()
     
@@ -490,11 +630,28 @@ server <- function(input, output) {
     
     if (input$zoomslider == 'Neighborhoods') {
       
-      points <- data_full[c(indices_neibs[[index]]), ]
+      if (nrow(small_mapzone()) > 1 ) {
+        
+        points <- data_full
+        
+      } else {
+        
+        points <- data_full[c(indices_neibs[[index]]), ]
+        
+      }
+    
       
     } else if (input$zoomslider == 'Districts') {
       
-      points <- data_full[c(indices_dists[[index]]), ]
+      if (nrow(small_mapzone()) > 1) {
+        
+        points <- data_full
+        
+      } else {
+        
+        points <- data_full[c(indices_dists[[index]]), ]
+        
+      }
     }
   
     points
@@ -505,7 +662,22 @@ server <- function(input, output) {
   output$smallmap <- renderLeaflet({
     
     small_mapzone() %>% 
-      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14, attributionControl = F)) %>% 
+      addProviderTiles(providers$MtbMap,
+                       options = providerTileOptions(opacity = 0.15)) %>%
+      addPolylines(color = "red", weight = 4) %>% 
+      addProviderTiles(providers$Stamen.TonerLines,
+                       options = providerTileOptions(opacity = 0.85)) %>% 
+      addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+      addCircleMarkers(lng = ~lon, lat = ~lat,
+                       data = smallzone_points(), radius = 1, color = "#191970")
+    
+  })
+  
+  output$smallmap2 <- renderLeaflet({
+    
+    small_mapzone() %>% 
+      leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14, attributionControl = F)) %>% 
       addProviderTiles(providers$MtbMap,
                        options = providerTileOptions(opacity = 0.15)) %>%
       addPolylines(color = "red", weight = 4) %>% 
@@ -518,71 +690,6 @@ server <- function(input, output) {
   })
   
   
-  
-  leaf_reactive <- reactive({
-    
-    if (input$zoomslider == "Individual Points" & input$plotType == "yes") {
-      
-      filt_data_detail() 
-      
-    } else if (input$zoomslider == "Individual Points" & input$plotType == "no") {
-      
-      data_full
-      
-    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "yes") {
-      
-      coords <- filt_data_detail() %>% 
-        select(lon, lat) %>%
-        st_as_sf(coords = c(1,2))
-      
-      coords_new <- coords %>% 
-        st_set_crs(st_crs(neibs))
-      
-      neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
-      
-      neibs
-    } else if (input$zoomslider == "Neighborhoods" & input$plotType == "no") {
-      
-      coords <- data_full %>% 
-        select(lon, lat) %>%
-        st_as_sf(coords = c(1,2))
-    
-      coords_new <- coords %>% 
-        st_set_crs(st_crs(neibs))
-    
-      neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
-      
-      neibs
-      
-    } else if (input$zoomslider == "Districts" & input$plotType == "yes") {
-      
-      coords <- filt_data_detail() %>% 
-        select(lon, lat) %>%
-        st_as_sf(coords = c(1,2))
-      
-      coords_new <- coords %>% 
-        st_set_crs(st_crs(districts))
-      
-      districts$n <- lengths(st_intersects(districts$geometry, coords_new))
-      
-      districts
-      
-    } else if (input$zoomslider == "Districts" & input$plotType == "no") {
-    
-      coords <- data_full %>% 
-        select(lon, lat) %>%
-        st_as_sf(coords = c(1,2))
-    
-      coords_new <- coords %>% 
-        st_set_crs(st_crs(districts))
-    
-      districts$n <- lengths(st_intersects(districts$geometry, coords_new))
-      
-      districts
-    
-    }
-      
-  })
   
   reactive_label <- reactive({
     

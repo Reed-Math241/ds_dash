@@ -10,6 +10,9 @@ library(sf)
 library(leaflet)
 ```
 
+```{r}
+
+```
 
 
 ## testing bikeshare data and general outline of sf map data
@@ -20,7 +23,7 @@ t <- read_csv("https://raw.githubusercontent.com/joshyam-k/schPull/master/data-f
 t <- t %>% 
   mutate(last_updated = with_tz(last_updated, "America/Los_Angeles"))
 
-map <- st_read("/Users/joshuayamamoto/Downloads/SF Shoreline and Islands/geo_export_f07717d3-0581-4d32-ae60-c9b2f961271a.shp")
+#map <- st_read("/Users/joshuayamamoto/Downloads/SF Shoreline and Islands/geo_export_f07717d3-0581-4d32-ae60-c9b2f961271a.shp")
 
 map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
