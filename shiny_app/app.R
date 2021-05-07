@@ -369,16 +369,16 @@ server <- function(input, output) {
   plot_static <- reactive({
     map %>% 
       ggplot() +
-      geom_hex(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = as.numeric(input$bins)) +
+      geom_bin2d(data = filt_data(), aes(lon, lat), inherit.aes = F, bins = as.numeric(input$bins)) +
       geom_sf(fill = NA, color = "grey50") +
       scale_fill_gradient(
         low = "white",
-        high = "#60c957"
+        high = "#149908"
       ) +
       theme_void() +
       labs(
-        caption = glue("Last updated: {top}")#,
-        #fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at around \n %H:%M %p")} in \n San Francisco')
+        caption = glue("Last updated: {top}"),
+        fill = glue('  Number of free   \n scooters on \n {format(viewed(), "%B %d, at around \n %H:%M %p")} in \n San Francisco')
       ) +
       theme(
         plot.caption = element_text(hjust = 1, size = 12 ),
@@ -436,8 +436,8 @@ server <- function(input, output) {
     } else if (input$tabs == 'trends') {
       
       text <- HTML(paste(p('This tab primarily serves to help the user visualize how lime scooter density across the entirety of San Francisco changes over time.
-               In the primary map, space is divided into regular hexagons. Hexagonal areas with lime scooters in them are colored green and the shade of
-               green corresponds to how many scooters are in that area. The user also has 6 different options for how many hexagons they want the space divided into
+               In the primary map, space is divided into Square bins. Square areas with lime scooters in them are colored green and the shade of
+               green corresponds to how many scooters are in that area. The user also has 6 different options for how many bins they want the space divided into
                with higher values resulting in finer density detail.'), p('The user can also change how far back in time they want to look using the slider on the right.
                the page defaults to showing the data from when it was most recently updated, but the user can go as far as 24 hours back to see what the data looked like then.'),
                p('Finally the barchart at the bottom shows how many lime scooters there were in total in San Francisco by the hour and the bar corresponding to the 
