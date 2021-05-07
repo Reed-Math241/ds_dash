@@ -5,7 +5,7 @@ account: joshyam
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4090719
-bundleId: 4570917
+bundleId: 4571760
 url: https://joshyam.shinyapps.io/shiny_app/
-when: 1620406425.23902
-lastSyncTime: 1620406425.23903
+when: 1620419676.75301
+lastSyncTime: 1620419676.75304

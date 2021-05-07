@@ -122,7 +122,6 @@ districts_counts <- get_counts(districts)
                           
 
 
-
 ## dashboard -------------------------------------------------------------------
 
 ui <- dashboardPage(
@@ -168,7 +167,7 @@ ui <- dashboardPage(
               lime scooters across San Francisco, California. The dashboard is split into two main components, a 'Trends' tab that 
               shows the general distribution and density of lime scooters across space, and an 'In detail' tab that allows the user
               to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood as well as district. Each
-              component includes a temporal component where the user can interact with a slider that controls how far back in time you want to look."),
+              tab includes a temporal component where the user can interact with a slider that controls how far back in time you want to look."),
             h3("Collecting the Data"),
             p("Wonderfully, there is a plethora of Bikeshare data released through the 'General Bikeshare Feed Specification' which is
               a standardized data feed. Even more wonderfully, there is a package in R written by Simon Couch, fittingly called", tags$a(href = "https://github.com/simonpcouch/gbfs", "gbfs") 
@@ -177,7 +176,7 @@ ui <- dashboardPage(
               scattered across San Francisco, so when pulling data every hour you very quickly get an extremely large dataset. I decided to limit how far back I wanted to keep data from to 24 hours,
               since I thought many interesting things could be gleaned from that amount of time and I wanted to avoid having a sluggish shiny app. So, in the end the main task was to find a way
               to pull and accumulate bikeshare data every hour, while making sure to only keep data from the last 24 hours."),
-            p("I decided to use github actions to run a script on a schedule to accomplish this. All my script does is loads in the most recent update
+            p("I decided to use github actions to run a script on a schedule to accomplish this. Simply put, my script loads in the most recent update
               of the bikshare data, binds it to my existing data set and then filters the joined data set to only include observations with timestamps in the last 24 hours. The repository where this
               is running is public and can be found", tags$a(href = "https://github.com/joshyam-k/schPull", "here"))
           )
@@ -203,7 +202,7 @@ ui <- dashboardPage(
                     radioGroupButtons(
                       inputId = "bins",
                       selected = "14",
-                      label = "Number of hexagonal bins:", 
+                      label = "Number of bins:", 
                       choices = c("100" = 10, "200" = 14, "300" = 17, "400" = 20, "500" = 23, "600" = 25),
                       status = "primary",
                       size = "lg",
@@ -294,7 +293,7 @@ ui <- dashboardPage(
                       leafletOutput('smallmap')
                     ),
                     conditionalPanel(
-                      condition = "input.zoomslider == 'Districts'",
+                      condition = "input.zoomslider == 'Districts' && input.plotType == 'no'",
                       leafletOutput('smallmap2')
                     ),
                     width = NULL
@@ -441,7 +440,8 @@ server <- function(input, output) {
                with higher values resulting in finer density detail.'), p('The user can also change how far back in time they want to look using the slider on the right.
                the page defaults to showing the data from when it was most recently updated, but the user can go as far as 24 hours back to see what the data looked like then.'),
                p('Finally the barchart at the bottom shows how many lime scooters there were in total in San Francisco by the hour and the bar corresponding to the 
-               time chosen by the user is highlighted.')))
+               time chosen by the user is highlighted.'), p('One final note is that for reasons unknown to me, my script scraping the data will occasionally fail, resulting in an hour which 
+               my app has no data for.')))
       
     } else if (input$tabs == 'detail') {
       
@@ -532,8 +532,16 @@ server <- function(input, output) {
       if (is.null(p)) {
         neib_counts
       } else {
-        neib_counts %>% 
-          filter(name == p$id)
+        
+        res <- try(filter(neib_counts, name == p$id),silent = TRUE)
+        
+        if (class(res) == 'try-error') {
+          neib_counts
+        } else {
+          neib_counts %>% 
+            filter(name == p$id)
+          
+        }  
       }
       
     } else if (input$zoomslider == "Districts") {
@@ -541,8 +549,19 @@ server <- function(input, output) {
       if (is.null(p)) {
         districts_counts
       } else {
-        districts_counts %>% 
-          filter(supervisor == p$id)
+        
+        res <- try(filter(districts_counts, supervisor == p$id),silent = TRUE)
+        
+        if (class(res) == 'try-error') {
+          
+          districts_counts
+          
+        } else {
+          
+          districts_counts %>% 
+            filter(supervisor == p$id)
+          
+        }
       }
       
     } 
@@ -562,8 +581,16 @@ server <- function(input, output) {
         
       } else {
         
-        title <- glue('Distribution of number of scooters over the last 24 hours \n in District {selected_zone()$supervisor[[1]]}')
+        res <- try(selected_zone()$supervisor[[1]], silent = T)
         
+        if (class(res) == 'try-error') {
+          
+          title <- 'Distribution of number of scooters over the last 24 hours \n in San Francisco'
+          
+        } else {
+        
+          title <- glue('Distribution of number of scooters over the last 24 hours \n in District {selected_zone()$supervisor[[1]]}')
+        }
       }
       
       
@@ -575,7 +602,16 @@ server <- function(input, output) {
         
       } else {
         
-        title <- glue('Distribution of number of scooters over the last 24 hours \n in {selected_zone()$name[[1]]}')
+        res <- try(selected_zone()$name[[1]], silent = T)
+        
+        if (class(res) == 'try-error') {
+          title <- 'Distribution of number of scooters over the last 24 hours \n in San Francisco'
+        } else {
+          
+          title <- glue('Distribution of number of scooters over the last 24 hours \n in {selected_zone()$name[[1]]}')
+        }
+        
+        
         
       }
       
@@ -605,10 +641,18 @@ server <- function(input, output) {
     if (input$zoomslider == 'Neighborhoods'){
       
       if (is.null(p)) {
-        neibs
+        neibs 
       } else {
-        neibs %>% 
-          filter(name == p$id)
+        tryCatch(
+          error = function(cnd){
+            neibs
+          }, 
+          {
+            neibs %>% 
+              filter(name == p$id)
+          }
+        
+       )
       } 
       
     } else if (input$zoomslider == 'Districts') {
@@ -616,8 +660,16 @@ server <- function(input, output) {
       if (is.null(p)) {
         districts
       } else {
-        districts %>% 
-          filter(supervisor == p$id)
+        tryCatch(
+          error = function(cnd){
+            districts
+          }, 
+          {
+            districts %>% 
+              filter(supervisor == p$id)
+          }
+          
+        )
       }
       
     }
@@ -626,33 +678,54 @@ server <- function(input, output) {
   
   smallzone_points <- reactive({
     
-    index <- small_mapzone()$id[[1]]
     
     if (input$zoomslider == 'Neighborhoods') {
       
+      
       if (nrow(small_mapzone()) > 1 ) {
         
-        points <- data_full
+        points <- data_full 
         
       } else {
         
-        points <- data_full[c(indices_neibs[[index]]), ]
+        res <- try(small_mapzone()$id[[1]],silent = TRUE)
         
+        if (class(res) == "try-error") {
+          
+          points <- data_full 
+          
+        } else {
+        
+          index <- small_mapzone()$id[[1]]
+          points <- data_full[c(indices_neibs[[index]]), ]
+        
+          
+        }
       }
     
-      
     } else if (input$zoomslider == 'Districts') {
       
       if (nrow(small_mapzone()) > 1) {
         
         points <- data_full
-        
+         
       } else {
         
-        points <- data_full[c(indices_dists[[index]]), ]
+        res <- try(small_mapzone()$id[[1]],silent = TRUE)
         
+        if (class(res) == "try-error") {
+          
+          points <- data_full 
+          
+        } else {
+          
+          index <- small_mapzone()$id[[1]]
+          points <- data_full[c(indices_dists[[index]]), ]
+          
+        }
       }
-    }
+      
+    } 
   
     points
     
