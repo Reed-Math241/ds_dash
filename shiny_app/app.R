@@ -163,10 +163,10 @@ ui <- dashboardPage(
           box(
             width = 12,
             h2("About the Dashboard"),
-            p("The main purpose of this dashboard is to provide a way to explore and visualize the geolocations of 
+            p("The main purposes of this dashboard are largely exploratory, as it aims to to provide a way to explore and visualize the geolocations of 
               lime scooters across San Francisco, California. The dashboard is split into two main components, a 'Trends' tab that 
               shows the general distribution and density of lime scooters across space, and an 'In detail' tab that allows the user
-              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood as well as district. Each
+              to look at the actual exact locations across San Francisco as well as some aggregation by neighborhood and district. Each
               tab includes a temporal component where the user can interact with a slider that controls how far back in time you want to look."),
             h3("Collecting the Data"),
             p("Wonderfully, there is a plethora of Bikeshare data released through the 'General Bikeshare Feed Specification' which is
@@ -757,7 +757,7 @@ server <- function(input, output) {
       addProviderTiles(providers$Stamen.TonerLines,
                        options = providerTileOptions(opacity = 0.85)) %>% 
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
-      addCircleMarkers(lng = ~lon, lat = ~lat,
+      addCircleMarkers(lng = ~lon, lat = ~lat, color = "#191970",
                        data = smallzone_points(), radius = 1)
     
   })

@@ -10,9 +10,6 @@ library(sf)
 library(leaflet)
 ```
 
-```{r}
-
-```
 
 
 ## testing bikeshare data and general outline of sf map data
@@ -30,84 +27,8 @@ map <- st_crop(map, xmin = -122.54, xmax = -122.35, ymin = 37.7, ymax = 37.83)
 
 ```
 
-Want to be able to look at varying levels of aggregation
-
-## San francisco districts
-
-```{r}
-districts <- st_read("shiny_app/sf_districts.shp")
-
-districts %>% 
-  ggplot() +
-  geom_sf()
-
-coords <- t %>% 
-  select(lon, lat) %>%
-  st_as_sf(coords = c(1,2))
-
-coords_new <- coords %>% 
-  st_set_crs(st_crs(districts))
-
-districts$n <- lengths(st_intersects(districts$geometry, coords_new))
-
-pal <- colorNumeric(palette = "Oranges", domain = districts$n)
-labl <- paste0("District ", districts$supervisor, "<br>", "scooters: ", districts$n)
-
-districts %>% 
-leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-  addProviderTiles(providers$MtbMap,
-                   options = providerTileOptions(opacity = 0.35)) %>%
-  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
-  addPolylines(color = "black", weight = 1.5) %>% 
-  addProviderTiles(providers$Stamen.TonerLines,
-                   options = providerTileOptions(opacity = 0.35)) %>% 
-  addLegend("bottomright", pal = pal, 
-            values = ~n, title = "Number of scooters",
-            opacity = 1)
-
-districts %>% 
-  filter(supervisor == 4) %>% 
-leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
-  addProviderTiles(providers$MtbMap,
-                   options = providerTileOptions(opacity = 0.15)) %>%
-  addPolylines(color = "red", weight = 4) %>% 
-  addProviderTiles(providers$Stamen.TonerLines,
-                   options = providerTileOptions(opacity = 0.85)) %>% 
-  addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
-  addCircleMarkers(lng = ~lon, lat = ~lat,
-                     data = test, radius = 1)
-
-districts_test <- districts %>% 
-  mutate(id = row_number())
-
-
-
-indices_t <- st_intersects(districts$geometry, coords_new)
-
-districts[districts$supervisor == 10, ] %>% 
-  View()
-
-test <- t[c(indices_t[[7]]), ]
-
-```
-
-# old coords code
-```{r}
-coords <- data_full %>% 
-  select(lon, lat) %>%
-  st_as_sf(coords = c(1,2))
-
-coords_new <- coords %>% 
-  st_set_crs(st_crs(neibs))
-
-neibs$n <- lengths(st_intersects(neibs$geometry, coords_new))
-
-districts$n <- lengths(st_intersects(districts$geometry, coords_new))
-```
 
 # time pull function
-
-
 
 ```{r}
 data_full <- t %>% 
@@ -245,6 +166,66 @@ leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>%
 ```
 
 
+## San francisco districts
+
+```{r}
+districts <- st_read("shiny_app/sf_districts.shp")
+
+districts %>% 
+  ggplot() +
+  geom_sf()
+
+coords <- t %>% 
+  select(lon, lat) %>%
+  st_as_sf(coords = c(1,2))
+
+coords_new <- coords %>% 
+  st_set_crs(st_crs(districts))
+
+districts$n <- lengths(st_intersects(districts$geometry, coords_new))
+
+pal <- colorNumeric(palette = "Oranges", domain = districts$n)
+labl <- paste0("District ", districts$supervisor, "<br>", "scooters: ", districts$n)
+
+districts %>% 
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.35)) %>%
+  addPolygons(color = ~pal(n), fillOpacity = 1.0, popup = labl) %>% 
+  addPolylines(color = "black", weight = 1.5) %>% 
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.35)) %>% 
+  addLegend("bottomright", pal = pal, 
+            values = ~n, title = "Number of scooters",
+            opacity = 1)
+
+districts %>% 
+  filter(supervisor == 4) %>% 
+leaflet(options = leafletOptions(minZoom = 11, maxZoom = 14)) %>% 
+  addProviderTiles(providers$MtbMap,
+                   options = providerTileOptions(opacity = 0.15)) %>%
+  addPolylines(color = "red", weight = 4) %>% 
+  addProviderTiles(providers$Stamen.TonerLines,
+                   options = providerTileOptions(opacity = 0.85)) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+  addCircleMarkers(lng = ~lon, lat = ~lat,
+                     data = test, radius = 1)
+
+districts_test <- districts %>% 
+  mutate(id = row_number())
+
+
+
+indices_t <- st_intersects(districts$geometry, coords_new)
+
+districts[districts$supervisor == 10, ] %>% 
+  View()
+
+test <- t[c(indices_t[[7]]), ]
+
+```
+
+
 ## leaflet plot testing
 
 ```{r}
@@ -274,33 +255,6 @@ min <- with_tz(min, "America/Los_Angeles")
 
 week(max) <- week(max) - 2
 
-
-
-
 ```
 
-```{r}
-map %>% 
-      ggplot() +
-      geom_hex(data = t, aes(lon, lat), inherit.aes = F, bins = 18) +
-      geom_sf(fill = NA, color = "grey50") +
-      scale_fill_gradient(
-        low = "white",
-        high = "#60c957"
-      ) +
-      theme_void() +
-      theme(
-        plot.caption = element_text(family = "Roboto Mono", hjust = 1, size = 12 ),
-        legend.position = "left"
-      ) +
-      guides(fill = guide_colorbar(title.position = "left"))
-```
-
-
-```{r}
-map %>% 
-  ggplot() +
-  geom_hex(data = t, aes(lon, lat)) +
-  geom_sf()
-```
 
