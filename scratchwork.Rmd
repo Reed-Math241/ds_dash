@@ -10,6 +10,8 @@ library(sf)
 library(leaflet)
 ```
 
+# scratch checkers
+
 ```{r}
 if (is.null(p)) {
         neib_counts

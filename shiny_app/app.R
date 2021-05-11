@@ -35,7 +35,7 @@ mytheme <- create_theme(
     light_blue = "#717b85"
   ),
   adminlte_sidebar(
-    width = "330px",
+    width = "300px",
     dark_bg = "#444e59",
     dark_hover_bg = "#9ca8b5",
     dark_hover_color = "#f7faf9",
@@ -205,7 +205,7 @@ ui <- dashboardPage(
                       label = "Number of bins:", 
                       choices = c("100" = 10, "200" = 14, "300" = 17, "400" = 20, "500" = 23, "600" = 25),
                       status = "primary",
-                      size = "lg",
+                      size = "normal",
                       individual = T
                       ),
                     width = NULL, height = 135
