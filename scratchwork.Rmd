@@ -10,6 +10,46 @@ library(sf)
 library(leaflet)
 ```
 
+```{r}
+if (is.null(p)) {
+        neib_counts
+      } else {
+        
+        res <- try(filter(neib_counts, name == p$id),silent = TRUE)
+        
+        if (class(res) == 'try-error') {
+          
+          neib_counts
+          
+        } else {
+          
+          neib_counts %>% 
+            filter(name == p$id)
+          
+        }  
+      }
+
+
+if (is.null(p)) {
+        
+        districts_counts
+        
+      } else {
+        
+        res <- try(filter(districts_counts, supervisor == p$id), silent = TRUE)
+        
+        if (class(res) == 'try-error') {
+          
+          districts_counts
+          
+        } else {
+          
+          districts_counts %>% 
+            filter(supervisor == p$id)
+          
+        }
+      }
+```
 
 
 ## testing bikeshare data and general outline of sf map data

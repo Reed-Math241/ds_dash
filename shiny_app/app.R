@@ -530,14 +530,19 @@ server <- function(input, output) {
     if (input$zoomslider == "Neighborhoods") {
       
       if (is.null(p)) {
+        
         neib_counts
+        
       } else {
         
         res <- try(filter(neib_counts, name == p$id),silent = TRUE)
         
         if (class(res) == 'try-error') {
+          
           neib_counts
+          
         } else {
+          
           neib_counts %>% 
             filter(name == p$id)
           
@@ -547,7 +552,9 @@ server <- function(input, output) {
     } else if (input$zoomslider == "Districts") {
       
       if (is.null(p)) {
+        
         districts_counts
+        
       } else {
         
         res <- try(filter(districts_counts, supervisor == p$id),silent = TRUE)
@@ -641,8 +648,11 @@ server <- function(input, output) {
     if (input$zoomslider == 'Neighborhoods'){
       
       if (is.null(p)) {
+        
         neibs 
+        
       } else {
+        
         tryCatch(
           error = function(cnd){
             neibs
@@ -658,8 +668,11 @@ server <- function(input, output) {
     } else if (input$zoomslider == 'Districts') {
       
       if (is.null(p)) {
+        
         districts
+        
       } else {
+        
         tryCatch(
           error = function(cnd){
             districts
